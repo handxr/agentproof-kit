@@ -31,30 +31,30 @@
       "hash": "sha256-JzldT1io+rym03jhz2hjs0ytsM2EdPoF1x793t8jTQE="
     },
     "rules/conventional-commits": {
-      "version": "1.0.0",
-      "hash": "sha256-rXfu8dC8PODatT6Z4lE1xB4LMUfFq2Jt0JJLU+g3xTw="
+      "version": "1.1.0",
+      "hash": "sha256-nvR8HgnDNx7XaebX8D0kFBqYmUZNgwaGwZf71wnM2E4="
     },
     "rules/react": {
-      "version": "1.0.0",
-      "hash": "sha256-4DK97GahsKPp/nfFjMMY61tGdj6sHgGTYLOzg24u+3s="
+      "version": "1.1.0",
+      "hash": "sha256-X0jj+6OiGmesTskumINgMLl67P+Ja0CKad5U1gjbKXs="
     },
     "rules/typescript-strict": {
       "version": "1.2.0",
       "hash": "sha256-qq7zy7MHsCVe+m9euYKhA01Gp8EX8aSfn4dMrn1uf3s="
     },
     "skills/code-review": {
-      "version": "1.1.0",
-      "hash": "sha256-87dXlTV3lo7x2IpUd5uuMJ2aJnR7OaLEfuua7Q7ifl4="
+      "version": "1.2.0",
+      "hash": "sha256-bMiPN29Jkj/pLx0zDAOnc/A7HYQ8W+JgAO6yERoF/cI="
     },
     "skills/react-component": {
-      "version": "0.3.0",
-      "hash": "sha256-7NTCjmVTDT/nEFOUFd+to0n2aEARwiXb5apLn8sYzPg="
+      "version": "0.4.0",
+      "hash": "sha256-ZJk3XuwnnqDTHk2eCDg/5Gu3gGstArgjYz7v4h1iLrI="
     }
   },
   "files": {
-    ".agents/skills/code-review/checklist.md": "sha256-pEApU/9RIOYkgSvw6Bssz5pX0CilEQFjLhrNgEU9Cbs=",
-    ".agents/skills/code-review/SKILL.md": "sha256-d4QLWQ5NXiuuh7OU4IjkfHYKro2NpyqO6VOrgGMTMww=",
-    ".agents/skills/react-component/SKILL.md": "sha256-k3z7vUrPKen6VRSBZ0yAhTnQrUhVnkl1i3jAmzg+Hf4=",
+    ".agents/skills/code-review/checklist.md": "sha256-LR87hpQk/buPSRODY4EIdr34vibMPA2+IgNkKD+o2l0=",
+    ".agents/skills/code-review/SKILL.md": "sha256-OgS8U2JnCd/e5Z4xvY9sDeorQ/dtnmaPZ43RCi7TApU=",
+    ".agents/skills/react-component/SKILL.md": "sha256-Xm5I1IifeSS2WjscNvf6+2CYwdo32WAO9vOt7uqDe5g=",
     ".agents/skills/react-component/templates/Component.tsx": "sha256-bTgGTacbefKDRuNhCgNQgliOJypHCQD6EoBdCXmDWC0=",
     ".claude/agents/explorer.md": "sha256-c2eLasZ7vKggSeOEJVWU6Q7KA7V8SS1eDO2344y8jUw=",
     ".claude/hooks/block-force-push.sh": "sha256-w6VBIJoiicLyO7EWVeC7xUlkWPXykAX49vPgAnq3JzA=",
@@ -65,8 +65,8 @@
     ".codex/rules/agentproof-kit.rules": "sha256-2xWRmgH7n8lEpJkKjmPJmuUvwP8jnsNLd1xXUAhjtUA=",
     ".cursor/agents/explorer.md": "sha256-OBkYGIonhrPDCAx+1leDPXSWnLrS8PwwOzIs32j/+DE=",
     ".cursor/hooks/block-force-push.sh": "sha256-w6VBIJoiicLyO7EWVeC7xUlkWPXykAX49vPgAnq3JzA=",
-    ".cursor/rules/conventional-commits.mdc": "sha256-XgKyVKv+yrtkKXIm4riH9drz3hRH2TABeSsCuWfLZpc=",
-    ".cursor/rules/react.mdc": "sha256-vGblk/J+4ovuw7xnqZpqPigb8TJryNvJtMRy5rqTlt8=",
+    ".cursor/rules/conventional-commits.mdc": "sha256-a1Z6gN4hHJjJyfRn26QnxwlPnQpS13e5YtG5xvfDKF0=",
+    ".cursor/rules/react.mdc": "sha256-PcUMrp/edR1tiWqugi1qPKo92KxhmgbzqWUq7UGRjpo=",
     ".cursor/rules/typescript-strict.mdc": "sha256-Cko6JDeNk80+0shGWBMHQBUNS1Z4UeLio1oX0VJJOu8="
   },
   "owned": {

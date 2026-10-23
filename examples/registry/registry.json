@@ -1,21 +1,21 @@
 {
   "name": "example-registry",
   "skills": {
-    "agentproof-kit": { "version": "1.0.0", "description": "Teach a coding agent to drive the agentproof-kit CLI" },
-    "code-review": { "version": "1.1.0", "description": "Review a diff for bugs, risk and missing tests" },
-    "react-component": { "version": "0.3.0", "description": "Scaffold a typed React component with a test" }
+    "agentproof-kit": { "version": "1.1.0", "description": "Teach a coding agent to drive the agentproof-kit CLI" },
+    "code-review": { "version": "1.2.0", "description": "Review a diff for bugs, risk and missing tests" },
+    "react-component": { "version": "0.4.0", "description": "Scaffold a typed React component with a test" }
   },
   "mcp": {
     "github": { "version": "1.0.0", "description": "GitHub MCP server (stdio)" },
     "context7": { "version": "1.0.0", "description": "Library docs over HTTP" }
   },
   "rules": {
-    "conventional-commits": { "version": "1.0.0", "description": "Commit message format" },
+    "conventional-commits": { "version": "1.1.0", "description": "Commit message format" },
     "typescript-strict": { "version": "1.2.0", "description": "TypeScript conventions" },
-    "react": { "version": "1.0.0", "description": "React component conventions" }
+    "react": { "version": "1.1.0", "description": "React component conventions" }
   },
   "commands": {
-    "ship": { "version": "1.0.0", "description": "Test, commit and open a PR" }
+    "ship": { "version": "1.1.0", "description": "Test, commit and open a PR" }
   },
   "agents": {
     "explorer": { "version": "1.0.0", "description": "Read-only codebase explorer" }

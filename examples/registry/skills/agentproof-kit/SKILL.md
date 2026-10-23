@@ -1,11 +1,11 @@
 ---
 name: agentproof-kit
-description: Install, remove and check the skills, rules, MCP servers, commands, subagents, hooks and permissions this project gives to coding agents. Use when the task mentions agents.json, agents.lock, agentproof-kit, or adding a skill, rule or MCP server for Cursor, Claude Code or Codex.
+description: Install, remove, and check the skills, rules, MCP servers, commands, subagents, hooks, and permissions that this project gives to coding agents. Use when the task mentions agents.json, agents.lock, agentproof-kit, or adding a skill, rule, or MCP server for Cursor, Claude Code, or Codex.
 ---
 
 # Use agentproof-kit
 
-agentproof-kit writes agent setup files (`.cursor/`, `.claude/`, `.codex/`, `AGENTS.md`, `.mcp.json`) from one manifest, `agents.json`, and records what it wrote in `agents.lock`. You change the setup by running the CLI. You never edit the generated files.
+agentproof-kit writes agent setup files (`.cursor/`, `.claude/`, `.codex/`, `AGENTS.md`, `.mcp.json`) from one manifest, `agents.json`, and records what it wrote in `agents.lock`. To change the setup, run the CLI. Never edit the generated files.
 
 ## Before you start
 
@@ -20,7 +20,7 @@ agentproof-kit writes agent setup files (`.cursor/`, `.claude/`, `.codex/`, `AGE
 3. Run `agentproof-kit add rules/react --json`.
 4. Run `agentproof-kit check --json`. You are done when `ok` is `true`.
 
-To remove a piece, run `agentproof-kit remove <type>/<id> --json`, then `agentproof-kit check --json`. Remove deletes only the files and entries agentproof-kit wrote, so hand-written rules and MCP servers stay.
+To remove a piece, run `agentproof-kit remove <type>/<id> --json`, then `agentproof-kit check --json`. `remove` deletes only the files and entries that agentproof-kit wrote, so hand-written rules and MCP servers stay.
 
 ## Read the result
 
@@ -54,16 +54,16 @@ Act on `code`, not on `message`. The message text can change between versions.
 | `usage` | Run the `fix` (`agentproof-kit <command> --help`) and correct the arguments. |
 | anything else | Report the message to the user. |
 
-When `fix` is not null, it is the exact command to run, scope and `--dir` included. Warnings never change the exit code. Mention them to the user if they matter for the task.
+When `fix` is not null, it is the exact command to run, with `--global` or `--dir` already added. Warnings never change the exit code. If a warning matters for the task, tell the user.
 
 ## Project or global
 
-- Project scope is the default. The manifest sits in the project root and files go in the project. Use it for setup the team shares.
-- `--global` installs for the user. The manifest sits in `~/.config/agentproof-kit` and files go under `$HOME`. Use it only when the user asks for their personal setup.
+- Project scope is the default. The manifest is in the project root, and the files go in the project. Use it for setup the team shares.
+- `--global` installs for the user. The manifest is in `~/.config/agentproof-kit`, and the files go under `$HOME`. Use it only when the user asks for their personal setup.
 - `check` in a project warns when a piece is installed in both scopes.
 
-## Do not
+## Leave generated files alone
 
-- Edit files that agentproof-kit generated. The next `sync` overwrites them, and `check` reports them as drift.
-- Edit `agents.lock` by hand. Run `agentproof-kit update` instead.
-- Pass `--global` unless the user asked for a personal setup.
+- Do not edit files that agentproof-kit generated. The next `sync` overwrites them, and `check` reports them as drift.
+- Do not edit `agents.lock` by hand. Run `agentproof-kit update` instead.
+- Do not pass `--global` unless the user asked for a personal setup.
