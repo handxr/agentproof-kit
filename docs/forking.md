@@ -24,7 +24,7 @@ Commit `agents.json`, `agents.lock`, `AGENTS.md`, and the generated files. Run `
 
 ## Add a target
 
-1. Write `src/adapters/<target>.ts`. Export an `Adapter` with the piece types it supports and a `render` function.
+1. Write `src/adapters/<target>.ts`. Export an `Adapter` with the piece types it supports, the skill directories it reads (`skillDirs`), and a `render` function. For a file that other tools also write, return owned entries instead of whole content.
 2. Add the target to `TARGETS` in `src/types.ts` and to `ADAPTERS` in `src/adapters/index.ts`.
 3. Add the format and its source to `docs/formats.md`.
 
@@ -35,3 +35,7 @@ Commit `agents.json`, `agents.lock`, `AGENTS.md`, and the generated files. Run `
 1. Add the type to `PIECE_TYPES` and a variant to `PieceBody` in `src/types.ts`.
 2. Parse it in `parseBody` in `src/registry.ts`.
 3. Add the type to the `supports` set of each adapter that can write it, and render it there. `check` reports the type as unsupported for every other target.
+
+## Know what each decision protects
+
+[docs/decisions/](decisions/README.md) has one file per design decision. Each one says what you can change in your fork and what breaks if you change the decision itself. Read the matching file before you change the lockfile, `check`, an adapter, or the way agent-kit writes shared files.

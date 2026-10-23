@@ -106,6 +106,10 @@ src/cli.ts            argument parsing and output
 
 Parsing happens once, at the edge. `resolve.ts` and the adapters are pure functions, so the tests call them without touching git. `project.ts` compares each file's content before it writes, and writes through a temporary file and a rename. Two `sync` runs in a row leave the tree unchanged.
 
+## Why it works this way
+
+[docs/decisions/](docs/decisions/README.md) explains each design decision, what a fork can change safely, and what breaks if it changes the decision.
+
 ## Test
 
 ```sh
