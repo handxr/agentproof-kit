@@ -12,3 +12,4 @@ Each file explains one decision in agent-kit. It gives the context, the decision
 8. [Each skill is written once, to `.agents/skills`](08-one-skill-copy.md)
 9. [Claude reads the rules through `@AGENTS.md`](09-claude-rules-via-agents-md.md)
 10. [Known limitations](10-known-limitations.md)
+11. [`--global` installs for your user, with the same adapters](11-global-install.md)

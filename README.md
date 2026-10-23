@@ -96,6 +96,20 @@ A project with `"presets": ["frontend"]` gets both skills, both MCP servers, and
 
 [`examples/registry`](examples/registry) has these two presets with every piece they name.
 
+## Global install
+
+`--global` installs pieces for your user instead of a project. It works with `init`, `add`, `update`, `sync` and `check`:
+
+```sh
+agent-kit init --global --registry ~/src/my-registry --preset base
+agent-kit add --global mcp/github
+agent-kit check --global
+```
+
+`agents.json` and `agents.lock` live in `$XDG_CONFIG_HOME/agent-kit` (default `~/.config/agent-kit`). Files go under your home directory: skills in `~/.agents/skills` (linked from `~/.claude/skills`), MCP servers in `~/.claude.json`, `~/.codex/config.toml` and `~/.cursor/mcp.json`, and rules in `~/.claude/CLAUDE.md` and `~/.codex/AGENTS.md`. agent-kit changes only its own entries in these shared files.
+
+Cursor user rules and commands for every target have no documented user location, so `check --global` reports them as unsupported. In a project, `check` warns about any piece installed both globally and in that project. [Decision 11](docs/decisions/11-global-install.md) lists every path and its source.
+
 ## What each target supports
 
 | Piece | Cursor | Claude Code | Codex |
