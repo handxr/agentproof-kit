@@ -10,7 +10,7 @@ const DECISION = { allow: "allow", ask: "prompt", deny: "forbidden" } as const;
 export const codex: Adapter = {
   target: "codex",
   supports,
-  render(pieces) {
+  render(pieces, scope = "project") {
     const files: Array<[string, GeneratedFile]> = [];
     const unsupported = unsupportedTypes(pieces, supports, "codex");
     const warnings: string[] = [];
@@ -37,7 +37,7 @@ export const codex: Adapter = {
     for (const h of hooks) if (h.body.event !== "preShell") unsupported.push(`codex: ${h.key} event ${h.body.event} (edit tool matcher not verified)`);
     if (pre.length) {
       for (const { body: h } of pre) files.push([`.codex/hooks/${h.scriptName}`, file(h.script, true)]);
-      files.push([".codex/hooks.json", entries(pre.map(({ body: h }) => item(["hooks", "PreToolUse"], { matcher: "Bash", hooks: [{ type: "command", command: `"$(git rev-parse --show-toplevel)/.codex/hooks/${h.scriptName}"` }] })))]);
+      files.push([".codex/hooks.json", entries(pre.map(({ body: h }) => item(["hooks", "PreToolUse"], { matcher: "Bash", hooks: [{ type: "command", command: `"${scope === "user" ? "$HOME" : "$(git rev-parse --show-toplevel)"}/.codex/hooks/${h.scriptName}"` }] })))]);
     }
 
     const perms = ofType(pieces, "permissions");

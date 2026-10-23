@@ -3,7 +3,10 @@ import { tmpdir } from "node:os";
 import { dirname, join, relative } from "node:path";
 
 export const EXAMPLE_REGISTRY = new URL("../examples/registry", import.meta.url).pathname;
-export const ENV = { GITHUB_PERSONAL_ACCESS_TOKEN: "x", CONTEXT7_API_KEY: "y" };
+// Tests never touch the real home: every test process gets a throwaway HOME and no XDG_CONFIG_HOME.
+process.env.HOME = mkdtempSync(join(tmpdir(), "agent-kit-home-"));
+delete process.env.XDG_CONFIG_HOME;
+export const ENV = { GITHUB_PERSONAL_ACCESS_TOKEN: "x", CONTEXT7_API_KEY: "y", HOME: process.env.HOME };
 
 /** A fresh copy of the example registry and a project next to it. */
 export function fixture(manifest: Record<string, unknown> = {}) {

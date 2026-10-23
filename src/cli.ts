@@ -4,7 +4,7 @@ import { existsSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { parseArgs } from "node:util";
 import { ParseError, parsePieceKey, splitKey } from "./parse.ts";
-import { add, check, init, readLock, readManifest, sync, update } from "./project.ts";
+import { add, check, init, readLock, readManifest, sync, update, userPlace } from "./project.ts";
 import { loadPiece, loadRegistry } from "./registry.ts";
 
 const USAGE = `agent-kit <command> [options]
@@ -17,44 +17,50 @@ const USAGE = `agent-kit <command> [options]
   list                      list registry pieces and presets (* = installed)
   show <type>/<id>          print a piece's metadata and files
 
-  --dir <path>              project directory (default: cwd)`;
+  --dir <path>              project directory (default: cwd)
+  --global                  install for your user instead of a project: agents.json and
+                            agents.lock in $XDG_CONFIG_HOME/agent-kit (default ~/.config/agent-kit),
+                            files under $HOME (init, add, update, sync, check)`;
 
 function main(argv: string[]): number {
   const { values, positionals } = parseArgs({
     args: argv,
     allowPositionals: true,
-    options: { dir: { type: "string" }, registry: { type: "string" }, preset: { type: "string", multiple: true }, target: { type: "string", multiple: true }, help: { type: "boolean", short: "h" } },
+    options: { dir: { type: "string" }, registry: { type: "string" }, preset: { type: "string", multiple: true }, target: { type: "string", multiple: true }, help: { type: "boolean", short: "h" }, global: { type: "boolean", short: "g" } },
   });
   const [cmd, ...args] = positionals;
+  if (values.global && values.dir) throw new ParseError("--global and --dir cannot be combined");
   const dir = values.dir ?? process.cwd();
+  const where = values.global ? userPlace() : dir;
+  const config = typeof where === "string" ? where : where.config;
   const report = (changed: string[]) => console.log(changed.length ? changed.map((c) => `  ${c}`).join("\n") : "  up to date");
 
   switch (cmd) {
     case "init": {
       if (!values.registry) throw new ParseError("init needs --registry");
-      report(init(dir, { registry: values.registry, presets: values.preset ?? [], add: {}, remove: {}, targets: values.target ?? ["cursor", "claude", "codex"] }));
+      report(init(where, { registry: values.registry, presets: values.preset ?? [], add: {}, remove: {}, targets: values.target ?? ["cursor", "claude", "codex"] }));
       return 0;
     }
-    case "add": report(add(dir, args)); return 0;
-    case "update": report(update(dir)); return 0;
-    case "sync": report(sync(dir)); return 0;
+    case "add": report(add(where, args)); return 0;
+    case "update": report(update(where)); return 0;
+    case "sync": report(sync(where)); return 0;
     case "check": {
-      const { ok, problems, warnings } = check(dir);
+      const { ok, problems, warnings } = check(where);
       for (const w of warnings) console.log(`warning: ${w}`);
       console.log(ok ? "check: ok" : `check: ${problems.length} problem(s)\n${problems.map((p) => `  ${p}`).join("\n")}`);
       return ok ? 0 : 1;
     }
     case "list": {
-      const m = readManifest(dir);
-      const reg = loadRegistry(m.registry, dir, readLock(dir)?.registry.commit ?? null);
-      const installed = new Set(Object.keys(readLock(dir)?.pieces ?? {}));
+      const m = readManifest(config);
+      const reg = loadRegistry(m.registry, config, readLock(config)?.registry.commit ?? null);
+      const installed = new Set(Object.keys(readLock(config)?.pieces ?? {}));
       for (const [k, meta] of reg.index) console.log(`${installed.has(k) ? "*" : " "} ${k.padEnd(28)} ${meta.version.padEnd(8)} ${meta.description}`);
       for (const [id, p] of reg.presets) console.log(`  presets/${id.padEnd(20)} extends [${p.extends.join(", ")}]`);
       return 0;
     }
     case "show": {
-      const m = readManifest(dir);
-      const reg = loadRegistry(m.registry, dir, readLock(dir)?.registry.commit ?? null);
+      const m = readManifest(config);
+      const reg = loadRegistry(m.registry, config, readLock(config)?.registry.commit ?? null);
       const p = loadPiece(reg, parsePieceKey(args[0] ?? ""));
       console.log(JSON.stringify({ key: p.key, version: p.version, description: p.description, hash: p.hash, body: p.body }, (_k, v: unknown) => (v instanceof Map ? Object.fromEntries(v) : v), 2));
       return 0;

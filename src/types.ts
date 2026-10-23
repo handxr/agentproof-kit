@@ -101,8 +101,11 @@ export type RenderResult = {
   readonly warnings: readonly string[];
 };
 
+/** project: files go in the project. user: files go in the home directory (`--global`). */
+export type Scope = "project" | "user";
+
 export type Adapter = {
   readonly target: Target;
   readonly supports: ReadonlySet<PieceType>;
-  readonly render: (pieces: readonly Piece[]) => RenderResult;
+  readonly render: (pieces: readonly Piece[], scope?: Scope) => RenderResult;
 };

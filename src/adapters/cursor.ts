@@ -1,17 +1,20 @@
 // Formats: docs/formats.md#cursor
 import { renderFrontmatter } from "../parse.ts";
-import type { Adapter, GeneratedFile } from "../types.ts";
+import type { Adapter, GeneratedFile, PieceType } from "../types.ts";
 import { entries, file, item, key, ofType, plainMarkdown, unsupportedTypes } from "./shared.ts";
 
 const supports = new Set(["skills", "mcp", "rules", "commands", "agents", "hooks", "permissions"] as const);
+// User rules live only in Cursor Settings, and no personal commands folder is documented.
+const userSupports = new Set<PieceType>(["skills", "mcp", "agents", "hooks", "permissions"]);
 const EVENTS = { preShell: "beforeShellExecution", postEdit: "afterFileEdit" } as const;
 
 export const cursor: Adapter = {
   target: "cursor",
   supports,
-  render(pieces) {
-    const files: Array<[string, GeneratedFile]> = [...plainMarkdown(pieces, "commands", ".cursor/commands")];
-    const unsupported = unsupportedTypes(pieces, supports, "cursor");
+  render(pieces, scope = "project") {
+    const user = scope === "user";
+    const files: Array<[string, GeneratedFile]> = user ? [] : [...plainMarkdown(pieces, "commands", ".cursor/commands")];
+    const unsupported = unsupportedTypes(pieces, user ? userSupports : supports, "cursor");
     const warnings: string[] = [];
 
     const mcp = ofType(pieces, "mcp");
@@ -24,7 +27,7 @@ export const cursor: Adapter = {
       files.push([".cursor/mcp.json", entries(servers)]);
     }
 
-    for (const { id, body: r } of ofType(pieces, "rules")) {
+    for (const { id, body: r } of user ? [] : ofType(pieces, "rules")) {
       files.push([`.cursor/rules/${id}.mdc`, file(renderFrontmatter({ description: r.description, globs: r.globs, alwaysApply: r.alwaysApply }) + r.body)]);
     }
     for (const { id, body: a } of ofType(pieces, "agents")) {
@@ -36,7 +39,7 @@ export const cursor: Adapter = {
       for (const { body: h } of hooks) files.push([`.cursor/hooks/${h.scriptName}`, file(h.script, true)]);
       files.push([".cursor/hooks.json", entries([
         { kind: "default", path: ["version"], value: 1 },
-        ...hooks.map(({ body: h }) => item(["hooks", EVENTS[h.event]], { command: `.cursor/hooks/${h.scriptName}` })),
+        ...hooks.map(({ body: h }) => item(["hooks", EVENTS[h.event]], { command: user ? `./hooks/${h.scriptName}` : `.cursor/hooks/${h.scriptName}` })),
       ])]);
     }
 
@@ -51,7 +54,7 @@ export const cursor: Adapter = {
         for (const cmd of p.ask) warnings.push(`cursor: ${key} ask "${cmd}" (no ask list in .cursor/cli.json)`);
       }
       const rules = [...allow.map((r) => item(["permissions", "allow"], r)), ...deny.map((r) => item(["permissions", "deny"], r))];
-      if (rules.length) files.push([".cursor/cli.json", entries(rules)]);
+      if (rules.length) files.push([user ? ".cursor/cli-config.json" : ".cursor/cli.json", entries(rules)]);
     }
     return { files: new Map(files), agentsMd: "", unsupported, warnings };
   },
