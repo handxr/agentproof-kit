@@ -95,7 +95,7 @@ export type RenderResult = {
   readonly files: ReadonlyMap<string, GeneratedFile>;
   /** Text for the AGENTS.md managed section, or "" for none. */
   readonly agentsMd: string;
-  /** Pieces this target cannot install at all. `check` fails on these. */
+  /** Pieces this target cannot install at all. `check` warns about these. */
   readonly unsupported: readonly string[];
   /** Pieces installed with a loss, such as a dropped `ask` entry. `check` prints these. */
   readonly warnings: readonly string[];
@@ -109,3 +109,12 @@ export type Adapter = {
   readonly supports: ReadonlySet<PieceType>;
   readonly render: (pieces: readonly Piece[], scope?: Scope) => RenderResult;
 };
+
+/** Stable ids for everything that can go wrong. `--json` output and the docs use these. */
+export const PROBLEM_CODES = [
+  "usage", "manifest-missing", "manifest-exists", "lock-missing", "lock-outdated", "registry-unavailable", "registry-changed",
+  "unknown-piece", "not-installed", "unknown-preset", "invalid-piece-key", "invalid-config", "drift", "conflict", "env-missing", "internal",
+] as const;
+export type ProblemCode = (typeof PROBLEM_CODES)[number];
+/** One thing to fix. `fix` is the exact command to run, or null when a person has to decide. */
+export type Problem = { readonly code: ProblemCode; readonly message: string; readonly fix: string | null };

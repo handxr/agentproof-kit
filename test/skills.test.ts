@@ -3,7 +3,7 @@ import { mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "nod
 import { join } from "node:path";
 import { test } from "node:test";
 import { check, sync, update } from "../src/project.ts";
-import { ENV, fixture, snapshot, writeJson } from "./helpers.ts";
+import { ENV, fixture, snapshot, writeJson, issues } from "./helpers.ts";
 
 const LINK = "-> ../../.agents/skills/code-review";
 const setTargets = (project: string, targets: string[]) =>
@@ -44,16 +44,16 @@ test("check reports a missing or repointed link, and sync restores it idempotent
   update(project);
   const link = join(project, ".claude/skills/code-review");
   rmSync(link);
-  assert.ok(check(project, ENV).problems.includes("drift: .claude/skills/code-review missing"));
+  assert.ok(issues(check(project, ENV)).includes("drift: .claude/skills/code-review missing"));
   sync(project);
   assert.equal(snapshot(project)[".claude/skills/code-review"], LINK);
   rmSync(link);
   symlinkSync("../elsewhere", link);
-  assert.ok(check(project, ENV).problems.some((p) => p.startsWith("drift: .claude/skills/code-review points to ../elsewhere")));
+  assert.ok(issues(check(project, ENV)).some((p) => p.startsWith("drift: .claude/skills/code-review points to ../elsewhere")));
   sync(project);
   assert.equal(snapshot(project)[".claude/skills/code-review"], LINK);
   assert.deepEqual(sync(project), []);
-  assert.ok(!check(project, ENV).problems.some((p) => p.startsWith("drift")));
+  assert.ok(!issues(check(project, ENV)).some((p) => p.startsWith("drift")));
 });
 
 test("dropping claude or a skill removes its link; the old per-target copy migrates to a link", () => {
@@ -99,7 +99,7 @@ test("CLAUDE.md imports AGENTS.md: created when absent, line added to a hand-wri
   update(other);
   assert.equal(readFileSync(join(other, "CLAUDE.md"), "utf8"), "# Mine\n\nKeep this.\n\n@AGENTS.md\n");
   writeFileSync(join(other, "CLAUDE.md"), "# Mine\n\nKeep this.\n");
-  assert.ok(check(other, ENV).problems.includes('drift: CLAUDE.md line "@AGENTS.md" missing'));
+  assert.ok(issues(check(other, ENV)).includes('drift: CLAUDE.md line "@AGENTS.md" missing'));
   sync(other);
   setTargets(other, ["cursor"]);
   update(other);

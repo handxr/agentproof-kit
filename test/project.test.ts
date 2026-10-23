@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { test } from "node:test";
 import { parseMcp } from "../src/parse.ts";
 import { check, sync, update } from "../src/project.ts";
-import { ENV, fixture, snapshot, writeJson } from "./helpers.ts";
+import { ENV, fixture, snapshot, writeJson, issues } from "./helpers.ts";
 
 test("sync is idempotent: a second run changes nothing", () => {
   const { project } = fixture();
@@ -35,7 +35,7 @@ test("update after a registry change produces a lock diff; sync alone refuses", 
   writeJson(join(registry, "registry.json"), reg);
 
   assert.throws(() => sync(project), /rules\/react: registry content differs/);
-  assert.match(check(project, ENV).problems.join("\n"), /rules\/react: registry content differs/);
+  assert.match(issues(check(project, ENV)).join("\n"), /registry-changed: rules\/react: registry content differs/);
 
   const changed = update(project);
   const lockAfter = JSON.parse(readFileSync(join(project, "agents.lock"), "utf8"));
@@ -59,7 +59,7 @@ test("update removes files for pieces that left the manifest", () => {
 test("check passes on a clean project", () => {
   const { project } = fixture();
   update(project);
-  assert.deepEqual(check(project, ENV).problems, []);
+  assert.deepEqual(issues(check(project, ENV)), []);
 });
 
 test("check fails on drift", () => {
@@ -69,7 +69,7 @@ test("check fails on drift", () => {
   writeFileSync(join(project, "AGENTS.md"), readFileSync(join(project, "AGENTS.md"), "utf8").replace("One component per file.", "Many components."));
   const { ok, problems } = check(project, ENV);
   assert.equal(ok, false);
-  assert.deepEqual(problems, ["drift: .cursor/rules/react.mdc edited", "drift: AGENTS.md managed section"]);
+  assert.deepEqual(problems.map((p) => `${p.code}: ${p.message}`), ["drift: .cursor/rules/react.mdc edited", "drift: AGENTS.md managed section"]);
 });
 
 test("check fails on a missing env var", () => {
@@ -77,14 +77,14 @@ test("check fails on a missing env var", () => {
   update(project);
   const { ok, problems } = check(project, { CONTEXT7_API_KEY: "y" });
   assert.equal(ok, false);
-  assert.deepEqual(problems, ["env: GITHUB_PERSONAL_ACCESS_TOKEN not set (needed by mcp/github)"]);
+  assert.deepEqual(problems.map((p) => `${p.code}: ${p.message}`), ["env-missing: GITHUB_PERSONAL_ACCESS_TOKEN not set (needed by mcp/github)"]);
 });
 
 test("check fails on an outdated lock; unsupported pieces are warnings with exit 0", () => {
   const { project } = fixture();
   update(project);
   writeJson(join(project, "agents.json"), { ...JSON.parse(readFileSync(join(project, "agents.json"), "utf8")), add: { commands: ["ship"] } });
-  assert.match(check(project, ENV).problems.join("\n"), /pieces out of date/);
+  assert.match(issues(check(project, ENV)).join("\n"), /pieces out of date/);
   update(project);
   const r = check(project, ENV);
   assert.deepEqual(r.problems, []);

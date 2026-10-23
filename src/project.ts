@@ -2,14 +2,14 @@
 import { createHash } from "node:crypto";
 import { chmodSync, existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, readlinkSync, renameSync, rmdirSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { dirname, join } from "node:path";
+import { dirname, join, relative } from "node:path";
 import { ADAPTERS } from "./adapters/index.ts";
 import { emptyLike, merge, ownedIds } from "./merge.ts";
 import { skillFiles } from "./adapters/shared.ts";
 import { ParseError, parseLock, parseManifest, parsePieceKey, splitKey } from "./parse.ts";
 import { loadPiece, loadRegistry } from "./registry.ts";
 import { resolvePieces } from "./resolve.ts";
-import type { GeneratedFile, Lock, MergedFile, Manifest, Piece, Registry, Scope, Target } from "./types.ts";
+import type { GeneratedFile, Lock, MergedFile, Manifest, Piece, Problem, ProblemCode, Registry, Scope, Target } from "./types.ts";
 
 export const MANIFEST = "agents.json";
 export const LOCK = "agents.lock";
@@ -19,14 +19,19 @@ const END = "<!-- agent-kit:end -->";
 const sha = (s: string) => `sha256-${createHash("sha256").update(s).digest("base64")}`;
 const readJson = (path: string): unknown => JSON.parse(readFileSync(path, "utf8"));
 
-export const readManifest = (dir: string): Manifest => parseManifest(readJson(join(dir, MANIFEST)));
+const readRawManifest = (dir: string): Record<string, unknown> => {
+  if (!existsSync(join(dir, MANIFEST))) throw new ParseError(`no ${MANIFEST} in ${dir}`, "manifest-missing", "agent-kit init --registry <src>");
+  return readJson(join(dir, MANIFEST)) as Record<string, unknown>;
+};
+export const readManifest = (dir: string): Manifest => parseManifest(readRawManifest(dir));
 export const readLock = (dir: string): Lock | null => (existsSync(join(dir, LOCK)) ? parseLock(readJson(join(dir, LOCK))) : null);
 
 /**
  * Where one install lives. project: agents.json, the lock and the files all sit in the project dir.
  * user (`--global`): agents.json and the lock sit in $XDG_CONFIG_HOME/agent-kit, the files under $HOME.
+ * dryRun: compute and return the changes, write nothing.
  */
-export type Place = { readonly scope: Scope; readonly config: string; readonly root: string };
+export type Place = { readonly scope: Scope; readonly config: string; readonly root: string; readonly dryRun?: boolean };
 export type Where = string | Place;
 export const placeOf = (w: Where): Place => (typeof w === "string" ? { scope: "project", config: w, root: w } : w);
 export function userPlace(env: NodeJS.ProcessEnv = process.env): Place {
@@ -102,11 +107,12 @@ function merges(dir: string, r: Rendered, previous: Lock | null) {
 }
 
 /** Write only what differs, atomically. Returns the paths that changed. */
-function writeIfChanged(dir: string, path: string, content: string, executable = false): boolean {
+function writeIfChanged(dir: string, path: string, content: string, executable = false, dry = false): boolean {
   const abs = join(dir, path);
   const same = existsSync(abs) && readFileSync(abs, "utf8") === content;
   const modeOk = !executable || (existsSync(abs) && (statSync(abs).mode & 0o111) !== 0);
   if (same && modeOk) return false;
+  if (dry) return true;
   mkdirSync(dirname(abs), { recursive: true });
   const tmp = `${abs}.agent-kit-tmp`;
   writeFileSync(tmp, content);
@@ -138,9 +144,10 @@ function linkClash(dir: string, path: string, target: string, previous: Lock | n
   return `${path}: already exists and agent-kit did not write it (wanted a link to ${target}). Rename it, or drop the piece from agents.json.`;
 }
 
-function writeLink(dir: string, path: string, target: string): boolean {
+function writeLink(dir: string, path: string, target: string, dry: boolean): boolean {
   const abs = join(dir, path);
   if (linkAt(abs) === target) return false;
+  if (dry) return true;
   if (lexists(abs)) rmSync(abs, { recursive: true, force: true });
   mkdirSync(dirname(abs), { recursive: true });
   symlinkSync(target, abs);
@@ -149,25 +156,26 @@ function writeLink(dir: string, path: string, target: string): boolean {
 
 /** Derive the whole project state from (lock, rendered). Safe to run any number of times. */
 export function apply(where: Where, lock: Lock, r: Rendered, previous: Lock | null): string[] {
-  const { root: dir, config } = placeOf(where);
+  const { root: dir, config, dryRun: dry = false } = placeOf(where);
+  const del = (path: string) => { if (!dry) remove(dir, path); };
   const changed: string[] = [];
   // Merge first: a clash with a hand-written entry throws before anything is written.
   const merged = merges(dir, r, previous);
   const clashes = [...r.files].flatMap(([path, f]) => (f.kind === "link" ? [linkClash(dir, path, f.target, previous)] : [])).filter((c) => c !== null);
-  if (clashes.length) throw new ParseError(clashes.join("\n"));
+  if (clashes.length) throw new ParseError(clashes.join("\n"), "conflict", null);
   for (const path of Object.keys(previous?.files ?? {})) {
-    if (!r.files.has(path) && lexists(join(dir, path))) { remove(dir, path); changed.push(`- ${path}`); }
+    if (!r.files.has(path) && lexists(join(dir, path))) { del(path); changed.push(`- ${path}`); }
   }
   for (const [path, f] of r.files) {
-    if (f.kind === "whole" && writeIfChanged(dir, path, f.content, f.executable)) changed.push(path);
-    if (f.kind === "link" && writeLink(dir, path, f.target)) changed.push(path);
+    if (f.kind === "whole" && writeIfChanged(dir, path, f.content, f.executable, dry)) changed.push(path);
+    if (f.kind === "link" && writeLink(dir, path, f.target, dry)) changed.push(path);
   }
   for (const m of merged) {
-    if (m.content === null) { if (m.current !== null) { remove(dir, m.path); changed.push(`- ${m.path}`); } }
-    else if (writeIfChanged(dir, m.path, m.content)) changed.push(m.path);
+    if (m.content === null) { if (m.current !== null) { del(m.path); changed.push(`- ${m.path}`); } }
+    else if (writeIfChanged(dir, m.path, m.content, false, dry)) changed.push(m.path);
   }
-  for (const doc of r.docs) if (writeIfChanged(dir, doc, mergeAgentsMd(readText(dir, doc) ?? "", r.agentsMd))) changed.push(doc);
-  if (writeIfChanged(config, LOCK, lockText(lock))) changed.push(LOCK);
+  for (const doc of r.docs) if (writeIfChanged(dir, doc, mergeAgentsMd(readText(dir, doc) ?? "", r.agentsMd), false, dry)) changed.push(doc);
+  if (writeIfChanged(config, LOCK, lockText(lock), false, dry)) changed.push(relative(dir, join(config, LOCK)));
   return changed;
 }
 
@@ -183,28 +191,52 @@ export function update(where: Where): string[] {
 function updateWith(where: Where, raw: unknown): string[] {
   const manifest = parseManifest(raw);
   const changed = applyManifest(where, manifest);
-  if (writeIfChanged(placeOf(where).config, MANIFEST, `${JSON.stringify(raw, null, 2)}\n`)) changed.unshift(MANIFEST);
+  const { root, config, dryRun } = placeOf(where);
+  if (writeIfChanged(config, MANIFEST, `${JSON.stringify(raw, null, 2)}\n`, false, dryRun)) changed.unshift(relative(root, join(config, MANIFEST)));
   return changed;
 }
 
 /** Create agents.json and the files it implies, or nothing at all. */
 export function init(where: Where, manifest: Record<string, unknown>): string[] {
   const path = join(placeOf(where).config, MANIFEST);
-  if (existsSync(path)) throw new ParseError(`${path} already exists`);
+  if (existsSync(path)) throw new ParseError(`${path} already exists`, "manifest-exists", "agent-kit update");
   return updateWith(where, manifest);
 }
 
 /** Add pieces to agents.json. The manifest changes only if the update succeeds. */
 export function add(where: Where, keys: readonly string[]): string[] {
-  const raw = readJson(join(placeOf(where).config, MANIFEST)) as Record<string, unknown>;
+  const raw = readRawManifest(placeOf(where).config);
   const m = parseManifest(raw);
   const added: Record<string, string[]> = Object.fromEntries(Object.entries(m.add).map(([k, v]) => [k, [...v]]));
+  const removed: Record<string, string[]> = Object.fromEntries(Object.entries(m.remove).map(([k, v]) => [k, [...v]]));
   for (const k of keys) {
     const { type, id } = splitKey(parsePieceKey(k));
     const list = (added[type] ??= []);
     if (!list.includes(id)) list.push(id);
+    if (removed[type]) removed[type] = removed[type].filter((x) => x !== id);
   }
-  return updateWith(where, { ...raw, add: added });
+  return updateWith(where, { ...raw, add: added, remove: removed });
+}
+
+/**
+ * Drop pieces. A piece listed in `add` leaves that list. A piece that comes from a preset goes into
+ * `remove`. The update then deletes only the files and entries the lock says agent-kit wrote.
+ */
+export function removePieces(where: Where, keys: readonly string[]): string[] {
+  const raw = readRawManifest(placeOf(where).config);
+  const m = parseManifest(raw);
+  const installed = readLock(placeOf(where).config)?.pieces ?? {};
+  const lists = (l: typeof m.add): Record<string, string[]> => Object.fromEntries(Object.entries(l).map(([k, v]) => [k, [...v]]));
+  const added = lists(m.add), removed = lists(m.remove);
+  for (const k of keys) {
+    const key = parsePieceKey(k);
+    const { type, id } = splitKey(key);
+    const fromAdd = added[type]?.includes(id) ?? false;
+    if (!fromAdd && !(key in installed)) throw new ParseError(`${key} is not installed`, "not-installed", "agent-kit list");
+    if (fromAdd) added[type] = added[type]!.filter((x) => x !== id);
+    if (key in installed && !(removed[type] ??= []).includes(id)) removed[type]!.push(id);
+  }
+  return updateWith(where, { ...raw, add: added, remove: removed });
 }
 
 function applyManifest(where: Where, manifest: Manifest): string[] {
@@ -222,7 +254,7 @@ function lockedPieces(dir: string, lock: Lock): { reg: Registry; pieces: Piece[]
   const drift: string[] = [];
   const pieces = Object.entries(lock.pieces).map(([k, want]) => {
     const p = loadPiece(reg, parsePieceKey(k));
-    if (p.hash !== want.hash) drift.push(`${k}: registry content differs from agents.lock (run update)`);
+    if (p.hash !== want.hash) drift.push(`${k}: registry content differs from agents.lock`);
     return p;
   });
   return { reg, pieces, drift };
@@ -232,52 +264,55 @@ function lockedPieces(dir: string, lock: Lock): { reg: Registry; pieces: Piece[]
 export function sync(where: Where): string[] {
   const { scope, config } = placeOf(where);
   const lock = readLock(config);
-  if (!lock) throw new ParseError(`no ${LOCK}; run update first`);
+  if (!lock) throw new ParseError(`no ${LOCK} in ${config}`, "lock-missing", "agent-kit update");
   const { pieces, drift } = lockedPieces(config, lock);
-  if (drift.length) throw new ParseError(drift.join("\n"));
+  if (drift.length) throw new ParseError(drift.join("\n"), "registry-changed", "agent-kit update");
   return apply(where, lock, render(pieces, lock.targets, scope), lock);
 }
 
-export type CheckResult = { ok: boolean; problems: string[]; warnings: string[] };
+export type CheckResult = { ok: boolean; problems: Problem[]; warnings: string[] };
+
+const drifted = (message: string) => problem("drift", message, "agent-kit sync");
+const problem = (code: ProblemCode, message: string, fix: string | null): Problem => ({ code, message, fix });
 
 export function check(where: Where, env: NodeJS.ProcessEnv = process.env): CheckResult {
   const { scope, config, root: dir } = placeOf(where);
-  const problems: string[] = [];
+  const problems: Problem[] = [];
   const manifest = readManifest(config);
   const lock = readLock(config);
-  if (!lock) return { ok: false, problems: [`missing ${LOCK}`], warnings: [] };
+  if (!lock) return { ok: false, problems: [problem("lock-missing", `no ${LOCK} in ${config}`, "agent-kit update")], warnings: [] };
 
   // Outdated lock: the manifest asks for a different set, source or targets.
   const { reg, pieces, drift } = lockedPieces(config, lock);
-  problems.push(...drift);
+  problems.push(...drift.map((d) => problem("registry-changed", d, "agent-kit update")));
   const wanted = resolvePieces(manifest, reg.presets, new Set(reg.index.keys()));
   const locked = Object.keys(lock.pieces).sort();
-  if (manifest.registry !== lock.registry.source) problems.push(`lock: registry is ${lock.registry.source}, agents.json says ${manifest.registry}`);
-  if (wanted.join() !== locked.join()) problems.push(`lock: pieces out of date (agents.json wants ${wanted.length}, lock has ${locked.length}; run update)`);
-  if (manifest.targets.join() !== lock.targets.join()) problems.push("lock: targets out of date (run update)");
+  if (manifest.registry !== lock.registry.source) problems.push(problem("lock-outdated", `registry is ${lock.registry.source} in ${LOCK}, ${manifest.registry} in ${MANIFEST}`, "agent-kit update"));
+  if (wanted.join() !== locked.join()) problems.push(problem("lock-outdated", `pieces out of date (${MANIFEST} wants ${wanted.length}, ${LOCK} has ${locked.length})`, "agent-kit update"));
+  if (manifest.targets.join() !== lock.targets.join()) problems.push(problem("lock-outdated", "targets out of date", "agent-kit update"));
 
   // Drift: whole files must match what the lock renders. In shared files only the owned entries count.
   const r = render(pieces, lock.targets, scope);
   for (const [path, f] of r.files) {
     if (f.kind === "link") {
       const at = linkAt(join(dir, path));
-      if (at === null) problems.push(lexists(join(dir, path)) ? `drift: ${path} is not a link to ${f.target}` : `drift: ${path} missing`);
-      else if (at !== f.target) problems.push(`drift: ${path} points to ${at}, not ${f.target}`);
+      if (at === null) problems.push(lexists(join(dir, path)) ? drifted(`${path} is not a link to ${f.target}`) : drifted(`${path} missing`));
+      else if (at !== f.target) problems.push(drifted(`${path} points to ${at}, not ${f.target}`));
       continue;
     }
     const current = readText(dir, path);
-    if (current === null) problems.push(`drift: ${path} missing`);
-    else if (f.kind === "whole" && current !== f.content) problems.push(`drift: ${path} edited`);
+    if (current === null) problems.push(drifted(`${path} missing`));
+    else if (f.kind === "whole" && current !== f.content) problems.push(drifted(`${path} edited`));
   }
   try {
-    for (const m of merges(dir, r, lock)) problems.push(...m.drift.map((d) => `drift: ${m.path} ${d}`));
+    for (const m of merges(dir, r, lock)) problems.push(...m.drift.map((d) => drifted(`${m.path} ${d}`)));
   } catch (e) {
     if (!(e instanceof ParseError)) throw e;
-    problems.push(`conflict: ${e.message}`);
+    problems.push(problem("conflict", e.message, null));
   }
   for (const doc of r.docs) {
     const text = readText(dir, doc) ?? "";
-    if (mergeAgentsMd(text, r.agentsMd) !== text) problems.push(`drift: ${doc} managed section`);
+    if (mergeAgentsMd(text, r.agentsMd) !== text) problems.push(drifted(`${doc} managed section`));
   }
 
   // Secrets: every env var an MCP server names must be set.
@@ -285,7 +320,7 @@ export function check(where: Where, env: NodeJS.ProcessEnv = process.env): Check
     if (p.body.type !== "mcp") continue;
     const s = p.body.server;
     for (const name of s.kind === "stdio" ? s.env : s.bearerTokenEnv ? [s.bearerTokenEnv] : []) {
-      if (!env[name]) problems.push(`env: ${name} not set (needed by ${p.key})`);
+      if (!env[name]) problems.push(problem("env-missing", `${name} not set (needed by ${p.key})`, `export ${name}=<value>`));
     }
   }
   // A piece installed both globally and here loads twice in most agents.

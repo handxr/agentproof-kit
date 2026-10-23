@@ -47,7 +47,7 @@ function main(argv: string[]): number {
     case "check": {
       const { ok, problems, warnings } = check(where);
       for (const w of warnings) console.log(`warning: ${w}`);
-      console.log(ok ? "check: ok" : `check: ${problems.length} problem(s)\n${problems.map((p) => `  ${p}`).join("\n")}`);
+      console.log(ok ? "check: ok" : `check: ${problems.length} problem(s)\n${problems.map((p) => `  ${p.code}: ${p.message}`).join("\n")}`);
       return ok ? 0 : 1;
     }
     case "list": {

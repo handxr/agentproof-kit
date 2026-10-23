@@ -1,8 +1,17 @@
 // Boundary parsing. Untrusted JSON and markdown become typed values here or fail loudly.
 import { PIECE_TYPES, TARGETS } from "./types.ts";
-import type { Frontmatter, HookEvent, Lock, Manifest, McpServer, PieceKey, PieceLists, PieceType, Preset, PresetId, Target } from "./types.ts";
+import type { Frontmatter, ProblemCode, HookEvent, Lock, Manifest, McpServer, PieceKey, PieceLists, PieceType, Preset, PresetId, Target } from "./types.ts";
 
-export class ParseError extends Error {}
+/** Every expected failure. The CLI turns it into a `Problem`. */
+export class ParseError extends Error {
+  readonly code: ProblemCode;
+  readonly fix: string | null;
+  constructor(message: string, code: ProblemCode = "invalid-config", fix: string | null = null) {
+    super(message);
+    this.code = code;
+    this.fix = fix;
+  }
+}
 
 const fail = (where: string, msg: string): never => {
   throw new ParseError(`${where}: ${msg}`);
@@ -23,9 +32,9 @@ export const isPieceType = (v: string): v is PieceType => (PIECE_TYPES as readon
 export function parsePieceKey(raw: string): PieceKey {
   const [type, name, extra] = raw.split("/");
   if (type === undefined || name === undefined || extra !== undefined || !isPieceType(type)) {
-    return fail(raw, `expected <type>/<id> with type one of ${PIECE_TYPES.join(", ")}`);
+    throw new ParseError(`"${raw}": expected <type>/<id> with type one of ${PIECE_TYPES.join(", ")}`, "invalid-piece-key", "agent-kit list");
   }
-  id(name, raw);
+  if (!ID.test(name)) throw new ParseError(`"${raw}": invalid id "${name}"`, "invalid-piece-key", "agent-kit list");
   return raw as PieceKey;
 }
 

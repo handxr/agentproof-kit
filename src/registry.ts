@@ -5,6 +5,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, statSync } from "node
 import { homedir } from "node:os";
 import { isAbsolute, join, relative, resolve } from "node:path";
 import { ParseError, isPieceType, parseFrontmatter, parseHook, parseMcp, parsePermissions, parsePieceKey, parsePreset, splitKey } from "./parse.ts";
+import { hint } from "./resolve.ts";
 import type { Piece, PieceBody, PieceKey, Preset, PresetId, Registry } from "./types.ts";
 
 type Source = { kind: "path"; path: string } | { kind: "git"; url: string; ref: string };
@@ -40,17 +41,28 @@ function checkout(url: string, ref: string, pin: string | null): { root: string;
   return { root, commit };
 }
 
+function fetchRegistry(url: string, ref: string, pin: string | null) {
+  try {
+    return checkout(url, ref, pin);
+  } catch (e) {
+    if (e instanceof ParseError) throw e;
+    throw new ParseError(`registry ${url}: git failed (${String((e as { stderr?: unknown }).stderr ?? (e as Error).message).trim().split("\n")[0]})`, "registry-unavailable", null);
+  }
+}
+
 function resolveRef(root: string, ref: string): string {
   for (const candidate of ref === "HEAD" ? ["origin/HEAD", "FETCH_HEAD", "HEAD"] : [`origin/${ref}`, ref]) {
     try { return git(root, "rev-parse", `${candidate}^{commit}`); } catch { /* try next */ }
   }
-  throw new ParseError(`registry ref "${ref}" not found`);
+  throw new ParseError(`registry ref "${ref}" not found`, "registry-unavailable", null);
 }
 
 export function loadRegistry(source: string, projectDir: string, pin: string | null = null): Registry {
   const src = parseSource(source, projectDir);
-  const { root, commit } = src.kind === "path" ? { root: src.path, commit: null } : checkout(src.url, src.ref, pin);
-  const json: unknown = JSON.parse(readFileSync(join(root, "registry.json"), "utf8"));
+  const { root, commit } = src.kind === "path" ? { root: src.path, commit: null } : fetchRegistry(src.url, src.ref, pin);
+  const file = join(root, "registry.json");
+  if (!existsSync(file)) throw new ParseError(`registry ${source}: no registry.json at ${root}`, "registry-unavailable", null);
+  const json: unknown = JSON.parse(readFileSync(file, "utf8"));
   if (typeof json !== "object" || json === null) throw new ParseError("registry.json: expected an object");
   const index = new Map<PieceKey, { version: string; description: string }>();
   const presets = new Map<PresetId, Preset>();
@@ -85,7 +97,7 @@ const walk = (dir: string): string[] =>
 
 export function loadPiece(reg: Registry, key: PieceKey): Piece {
   const meta = reg.index.get(key);
-  if (!meta) throw new ParseError(`${key}: not in registry ${reg.source}`);
+  if (!meta) throw new ParseError(`${key}: not in registry ${reg.source}${hint(key, [...reg.index.keys()])}`, "unknown-piece", "agent-kit list");
   const { type, id } = splitKey(key);
   const paths = pieceFiles(reg.root, key);
   const read = (p: string) => readFileSync(join(reg.root, p), "utf8");

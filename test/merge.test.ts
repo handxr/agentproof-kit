@@ -3,7 +3,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
 import { check, sync, update } from "../src/project.ts";
-import { ENV, fixture, writeJson } from "./helpers.ts";
+import { ENV, fixture, writeJson, issues } from "./helpers.ts";
 
 const read = (dir: string, path: string) => readFileSync(join(dir, path), "utf8");
 const readJ = (dir: string, path: string) => JSON.parse(read(dir, path));
@@ -33,7 +33,7 @@ test("hand-written entries survive update and sync", () => {
   const toml = read(project, ".codex/config.toml");
   assert.ok(toml.startsWith('# my settings\nmodel = "o3"\n\n[mcp_servers.mine]\ncommand = "my-server"\n'));
   assert.match(toml, /\[mcp_servers\.github\]/);
-  assert.deepEqual(check(project, ENV).problems, []);
+  assert.deepEqual(issues(check(project, ENV)), []);
 });
 
 test("removing a piece deletes only its keys", () => {
@@ -63,14 +63,14 @@ test("editing an owned key is drift, editing a user key is not", () => {
   const mcp = readJ(project, ".mcp.json");
   mcp.mcpServers.mine.command = "changed";
   writeJson(join(project, ".mcp.json"), mcp);
-  assert.deepEqual(check(project, ENV).problems, []);
+  assert.deepEqual(issues(check(project, ENV)), []);
 
   mcp.mcpServers.github.command = "changed";
   writeJson(join(project, ".mcp.json"), mcp);
   writeFileSync(join(project, ".codex/config.toml"), read(project, ".codex/config.toml").replace('url = "https://mcp.context7.com/mcp"', 'url = "x"'));
-  assert.deepEqual(check(project, ENV).problems, ["drift: .codex/config.toml [mcp_servers.context7] edited", "drift: .mcp.json /mcpServers/github edited"]);
+  assert.deepEqual(issues(check(project, ENV)), ["drift: .codex/config.toml [mcp_servers.context7] edited", "drift: .mcp.json /mcpServers/github edited"]);
   sync(project);
-  assert.deepEqual(check(project, ENV).problems, []);
+  assert.deepEqual(issues(check(project, ENV)), []);
   assert.equal(readJ(project, ".mcp.json").mcpServers.mine.command, "changed");
 });
 

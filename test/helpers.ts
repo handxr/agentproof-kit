@@ -40,3 +40,6 @@ export function snapshot(dir: string): Record<string, string> {
   walk(dir);
   return out;
 }
+
+/** Problems as "code: message" lines, for short assertions. */
+export const issues = (r: { problems: readonly { code: string; message: string }[] }): string[] => r.problems.map((p) => `${p.code}: ${p.message}`);

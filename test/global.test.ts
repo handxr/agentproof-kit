@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 import { add, check, init, sync, update, userPlace } from "../src/project.ts";
-import { ENV, fixture, snapshot, writeJson } from "./helpers.ts";
+import { ENV, fixture, snapshot, writeJson, issues } from "./helpers.ts";
 
 /** A throwaway HOME next to a registry copy. The registry path in agents.json is absolute. */
 function home(env: Record<string, string> = {}) {
@@ -67,7 +67,7 @@ test("--global warns about pieces without a documented user location; claude com
   assert.ok(existsSync(join(HOME, ".claude/commands/ship.md")));
   const { ok, problems, warnings } = check(place, env);
   assert.equal(ok, true);
-  assert.deepEqual(problems, []);
+  assert.deepEqual(problems.map((p) => `${p.code}: ${p.message}`), []);
   for (const u of ["cursor: commands/ship", "cursor: rules/react"]) assert.ok(warnings.some((w) => w.startsWith(`unsupported: ${u}`)), u);
   assert.ok(!warnings.some((w) => w.startsWith("unsupported: claude:")));
 });
@@ -75,9 +75,9 @@ test("--global warns about pieces without a documented user location; claude com
 test("check passes on a clean global install and catches drift there", () => {
   const { registry, HOME, place, env } = home();
   init(place, manifest(registry, { targets: ["claude", "codex"] })); // Cursor has no file for user rules.
-  assert.deepEqual(check(place, env).problems, []);
+  assert.deepEqual(issues(check(place, env)), []);
   writeFileSync(join(HOME, ".codex/AGENTS.md"), "mine\n");
-  assert.ok(check(place, env).problems.includes("drift: .codex/AGENTS.md managed section"));
+  assert.ok(issues(check(place, env)).includes("drift: .codex/AGENTS.md managed section"));
 });
 
 test("check in a project warns about pieces also installed globally", () => {
