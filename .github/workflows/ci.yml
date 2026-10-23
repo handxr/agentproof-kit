@@ -22,3 +22,5 @@ jobs:
       - run: npm run typecheck
       # No agent CLIs are installed on the runner, so the smoke test only checks that the example project generates.
       - run: npm run smoke
+      # Forks publish the CLI; this builds dist/ and checks the package contents.
+      - run: npm pack --dry-run
