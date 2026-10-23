@@ -36,3 +36,5 @@ If the file already has an entry with the same name and a different value, and t
 
 - An `item` entry that matches an element you wrote by hand counts as owned, so removing the piece also removes your element.
 - The TOML merge finds tables by their `[header]` line. It does not see keys set with dotted names outside a table, such as `mcp_servers.github.command = "x"` at the top level.
+
+All known limits are collected in [Known limitations](10-known-limitations.md).

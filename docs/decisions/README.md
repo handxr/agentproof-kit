@@ -11,3 +11,4 @@ Each file explains one decision in agent-kit. It gives the context, the decision
 7. [In shared files, agent-kit owns only its entries](07-merge-owned-keys.md)
 8. [Each skill is written once, to `.agents/skills`](08-one-skill-copy.md)
 9. [Claude reads the rules through `@AGENTS.md`](09-claude-rules-via-agents-md.md)
+10. [Known limitations](10-known-limitations.md)
