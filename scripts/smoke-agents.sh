@@ -7,6 +7,8 @@ ROOT=$(cd "$(dirname "$0")/.." && pwd)
 # macOS has no `timeout`; perl's alarm does the same job. Resolve /var -> /private/var so Codex's trust key matches.
 command -v timeout >/dev/null || timeout() { local s=$1; shift; perl -e 'alarm shift; exec @ARGV' "$s" "$@"; }
 CURSOR=$(command -v cursor-agent || command -v "$HOME/.local/bin/cursor-agent" || command -v agent || true)
+# The `agent` wrapper execs $HOME/.local/bin/cursor-agent, which breaks under a throwaway HOME, so resolve the real binary.
+[ -x "$HOME/.local/bin/cursor-agent" ] && CURSOR=$(cd "$HOME/.local/bin" && node -p "require(\"fs\").realpathSync(\"cursor-agent\")")
 TMP=$(cd "$(mktemp -d)" && pwd -P)
 trap 'rm -rf "$TMP"' EXIT
 cp -r "$ROOT/examples/registry" "$TMP/registry"

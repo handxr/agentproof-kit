@@ -43,6 +43,8 @@ elif codex login status >/dev/null 2>&1; then
 else echo "  skipped: codex not logged in (run: codex login)"; fi
 
 CURSOR=$(command -v cursor-agent || command -v "$HOME/.local/bin/cursor-agent" || command -v agent || true)
+# The `agent` wrapper execs $HOME/.local/bin/cursor-agent, which breaks under a throwaway HOME, so resolve the real binary.
+[ -x "$HOME/.local/bin/cursor-agent" ] && CURSOR=$(cd "$HOME/.local/bin" && node -p "require(\"fs\").realpathSync(\"cursor-agent\")")
 if [ -z "$CURSOR" ]; then echo "  skipped: Cursor CLI (cursor-agent or agent) not installed"
 elif ! "$CURSOR" status </dev/null 2>&1 | grep -qi "not logged in"; then
   expect "$(basename "$CURSOR") -p ($("$CURSOR" --version 2>/dev/null))" "$(timeout 180 "$CURSOR" -p --trust --workspace "$PWD" --output-format text "$PROMPT" </dev/null 2>&1)"
