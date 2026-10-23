@@ -1,6 +1,7 @@
 {
   "name": "example-registry",
   "skills": {
+    "agent-kit": { "version": "1.0.0", "description": "Teach a coding agent to drive the agent-kit CLI" },
     "code-review": { "version": "1.1.0", "description": "Review a diff for bugs, risk and missing tests" },
     "react-component": { "version": "0.3.0", "description": "Scaffold a typed React component with a test" }
   },

@@ -160,3 +160,22 @@ test("never colored without a TTY or with NO_COLOR; --help works per command", (
   const r = spawnSync(process.execPath, [CLI, "check", "--dir", empty], { env: { ...process.env, ...ENV }, input: "y\n", encoding: "utf8", timeout: 5000 });
   assert.equal(r.status, 1, "does not wait for input");
 });
+
+test("init adds skills/agent-kit by default; --no-skill opts out", () => {
+  const reg = fixture().registry;
+  const fresh = () => mkdtempSync(join(tmpdir(), "agent-kit-init-"));
+  const a = fresh();
+  assert.equal(json(["init", "--registry", reg, "--dir", a]).status, 0);
+  assert.deepEqual(JSON.parse(readFileSync(join(a, "agents.json"), "utf8")).add, { skills: ["agent-kit"] });
+  assert.match(readFileSync(join(a, ".claude/skills/agent-kit/SKILL.md"), "utf8"), /^---\nname: agent-kit\ndescription: /);
+  const b = fresh();
+  json(["init", "--registry", reg, "--no-skill", "--dir", b]);
+  assert.deepEqual(JSON.parse(readFileSync(join(b, "agents.json"), "utf8")).add, {});
+  const bare = fixture().registry;
+  const index = JSON.parse(readFileSync(join(bare, "registry.json"), "utf8"));
+  delete index.skills["agent-kit"];
+  writeFileSync(join(bare, "registry.json"), JSON.stringify(index));
+  const c = json(["init", "--registry", bare, "--dir", fresh()]);
+  assert.equal(c.status, 0);
+  assert.match(c.out.warnings[0], /has no skills\/agent-kit/);
+});
