@@ -179,3 +179,23 @@ test("init adds skills/agent-kit by default; --no-skill opts out", () => {
   assert.equal(c.status, 0);
   assert.match(c.out.warnings[0], /has no skills\/agent-kit/);
 });
+
+test("an agent with only --json and the skill gets through init, add, check and remove", () => {
+  const reg = fixture().registry;
+  const dir = join(reg, "..", "fresh");
+  const env: Record<string, string> = { GITHUB_PERSONAL_ACCESS_TOKEN: "" };
+  const step = (...a: string[]) => json([...a, "--dir", dir], env).out;
+  let r = step("check");
+  assert.equal(r.problems[0].code, "manifest-missing");
+  assert.ok(step("init", "--registry", "../registry").ok);
+  r = step("add", "rules/reakt");
+  const hint = /did you mean (\S+)\?/.exec(r.problems[0].message)![1]!;
+  assert.ok(step("add", hint, "mcp/github").ok);
+  r = step("check");
+  assert.deepEqual(r.problems.map((p: { code: string }) => p.code), ["env-missing"]);
+  env.GITHUB_PERSONAL_ACCESS_TOKEN = /export (\w+)=/.exec(r.problems[0].fix)![1]!;
+  assert.ok(step("check").ok);
+  assert.ok(step("remove", "mcp/github", hint).ok);
+  assert.ok(step("check").ok);
+  assert.ok(!existsSync(join(dir, ".mcp.json")) || !("github" in JSON.parse(readFileSync(join(dir, ".mcp.json"), "utf8")).mcpServers));
+});
