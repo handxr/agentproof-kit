@@ -2,7 +2,7 @@
 
 ## Context
 
-Each agent stores its configuration in its own layout, and those layouts change every few months. Forks add targets that agentproof-kit does not ship.
+Each agent stores its configuration in its own layout, and those layouts change often. Forks add targets that agentproof-kit does not ship.
 
 ## Decision
 

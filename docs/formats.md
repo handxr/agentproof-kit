@@ -1,6 +1,6 @@
 # Target formats
 
-This page lists the file each adapter writes and the doc that defines the format. Each source was read on 2026-10-23. A piece type marked unsupported has no verified project-level format for that target, and `agentproof-kit check` fails if a project installs it there.
+This page lists the files that each adapter writes and the doc that defines each format. All sources were read on 2026-10-23. A piece type marked unsupported has no verified project-level format for that target. If a project installs it there, `agentproof-kit check` prints an `unsupported` warning and the other targets still get the piece.
 
 ## Cursor
 
@@ -8,7 +8,7 @@ Adapter: `src/adapters/cursor.ts`.
 
 | Piece | File | Source |
 | --- | --- | --- |
-| skills | `.agents/skills/<id>/SKILL.md`, or no copy of its own when Claude Code is also a target (see below) | https://cursor.com/docs/skills lists `.agents/skills/` and `.cursor/skills/` as project skill directories, and says Cursor also loads `.claude/skills/` and `.codex/skills/` for compatibility. |
+| skills | `.agents/skills/<id>/SKILL.md` | https://cursor.com/docs/skills lists `.agents/skills/` and `.cursor/skills/` as project skill directories, and says Cursor also loads `.claude/skills/` and `.codex/skills/` for compatibility. |
 | mcp | `.cursor/mcp.json`, `{"mcpServers": {...}}`, env as `${env:NAME}` | https://cursor.com/docs/mcp |
 | rules | `.cursor/rules/<id>.mdc` with `description`, `globs`, `alwaysApply` | https://cursor.com/docs/rules |
 | commands | `.cursor/commands/<id>.md`. Cursor now treats commands as legacy and recommends skills. | https://cursor.com/help/customization/skills, and the `commands/` folder in https://cursor.com/docs/reference/plugins |
@@ -16,9 +16,9 @@ Adapter: `src/adapters/cursor.ts`.
 | hooks | `.cursor/hooks.json`, `{"version": 1, "hooks": {"beforeShellExecution": [{"command": ...}]}}`. Project hooks run from the repo root. | https://cursor.com/docs/hooks |
 | permissions | `.cursor/cli.json`, `{"permissions": {"allow": ["Shell(git)"], "deny": [...]}}`. Applies to the Cursor CLI. | https://cursor.com/docs/cli/reference/permissions |
 
-`Shell(<commandBase>)` matches on the first word of a command. A permission entry with more than one word, such as `git push`, gets a warning and is left out. The file has no `ask` list, so `ask` entries also get a warning.
+`Shell(<commandBase>)` matches on the first word of a command. agentproof-kit leaves out a permission entry with more than one word, such as `git push`, and prints a warning. The file has no `ask` list, so `ask` entries also get a warning and are left out.
 
-Plugins use `skills/`, `rules/`, `agents/`, `commands/`, `hooks/hooks.json`, and `mcp.json` (https://cursor.com/docs/reference/plugins). This prototype does not emit plugins.
+Plugins use `skills/`, `rules/`, `agents/`, `commands/`, `hooks/hooks.json`, and `mcp.json` (https://cursor.com/docs/reference/plugins). agentproof-kit does not write plugins.
 
 ## Claude Code
 
@@ -34,7 +34,7 @@ Adapter: `src/adapters/claude.ts`.
 | hooks | `.claude/settings.json` `hooks.PreToolUse[].{matcher, hooks[{type: "command", command}]}`. Scripts use `"$CLAUDE_PROJECT_DIR"`. | https://code.claude.com/docs/en/hooks |
 | permissions | `.claude/settings.json` `permissions.{allow, ask, deny}` with `Bash(npm run *)` rules | https://code.claude.com/docs/en/permissions |
 
-Claude reads `AGENTS.md` only when the project has no `CLAUDE.md` (v2.1.277 and later), and a `CLAUDE.md` can import it with `@AGENTS.md` (https://code.claude.com/docs/en/memory). agentproof-kit owns that one line in `CLAUDE.md`: it creates the file if absent, appends the line to a hand-written file that lacks it, and never touches the other lines. The import works whether or not a `CLAUDE.md` existed, and on versions older than 2.1.277.
+Claude reads `AGENTS.md` only when the project has no `CLAUDE.md` (v2.1.277 and later), and a `CLAUDE.md` can import it with `@AGENTS.md` (https://code.claude.com/docs/en/memory). agentproof-kit owns that one line in `CLAUDE.md`. It creates the file if it does not exist, appends the line to a hand-written file that lacks it, and never changes the other lines. The import works whether or not a `CLAUDE.md` existed, and on versions older than 2.1.277.
 
 A `readonly` agent becomes `tools: Read, Grep, Glob`.
 
@@ -54,9 +54,9 @@ Adapter: `src/adapters/codex.ts`.
 
 Codex loads `.codex/config.toml`, `.codex/hooks.json`, and `.codex/rules/` only when the user trusts the project (https://developers.openai.com/codex/config-basic). Codex also asks the user to review non-managed hooks before they run.
 
-Codex hooks support only the `preShell` event here. The docs show `matcher: "Bash"` for shell commands. They do not name the matcher for file edits, so `postEdit` hooks are unsupported.
+The Codex adapter supports only the `preShell` hook event. The docs show `matcher: "Bash"` for shell commands. They do not name the matcher for file edits, so `postEdit` hooks are unsupported.
 
-Custom agents inherit the parent session's sandbox. A `readonly` agent gets a warning, because the TOML file cannot express it.
+Custom agents inherit the parent session's sandbox. A `readonly` agent gets a warning, because the TOML file has no field for it.
 
 ## Mapping summary
 
@@ -69,19 +69,19 @@ Custom agents inherit the parent session's sandbox. A `readonly` agent gets a wa
 
 ## One copy of each skill
 
-Cursor reads `.agents/skills/`, `.claude/skills/` and `.codex/skills/` (https://cursor.com/docs/skills). Codex scans `.agents/skills` from the working directory up to the repo root (https://developers.openai.com/codex/skills). pi, Copilot in VS Code, Gemini CLI, OpenCode and Windsurf also read `.agents/skills`. Claude Code reads only `.claude/skills/` and says symlinked skill folders work (https://code.claude.com/docs/en/skills).
+Cursor reads `.agents/skills/`, `.claude/skills/`, and `.codex/skills/` (https://cursor.com/docs/skills). Codex scans `.agents/skills` from the working directory up to the repo root (https://developers.openai.com/codex/skills). pi, Copilot in VS Code, Gemini CLI, OpenCode, and Windsurf also read `.agents/skills`. Claude Code reads only `.claude/skills/` and says symlinked skill folders work (https://code.claude.com/docs/en/skills).
 
 agentproof-kit writes every skill once, to `.agents/skills/<id>/`. When `claude` is a target it adds `.claude/skills/<id>`, a relative symlink to `../../.agents/skills/<id>`, one per skill, so hand-written skills can sit next to them in `.claude/skills/`.
 
-Unconfirmed: Cursor reads both directories, so with `claude` targeted it may list each skill twice through the symlink. The Cursor docs do not say whether it merges skills with the same name or resolves symlinks.
+Cursor reads both directories, so when `claude` is also a target, Cursor lists each skill twice. A run of the Cursor CLI on macOS on 2026-10-23 showed the duplicate. Both entries point at the same files. `check` prints a warning for it ([decision 10](decisions/10-known-limitations.md)).
 
 ## Checked against the real CLIs
 
-`npm run smoke` (scripts/smoke-agents.sh) generates the example project in a temp dir and asks each installed CLI what it parsed, with a throwaway home per CLI and dummy env values. Last run 2026-10-23 (AK-4) with Claude Code 2.1.309, codex-cli 0.164.0 and cursor-agent 2026.10.22-27dcf5f: no format bugs found.
+`npm run smoke` runs `scripts/smoke-agents.sh`. The script generates the example project in a temporary directory and asks each installed CLI what it parsed. Each CLI gets a throwaway home directory and dummy environment values. The last run was on 2026-10-23 with Claude Code 2.1.309, codex-cli 0.164.0, and cursor-agent 2026.10.22-27dcf5f, and it found no format bugs.
 
-- Claude Code: `claude mcp list` lists both servers from `.mcp.json` as "Pending approval" (project servers need approval in an interactive session; `enableAllProjectMcpServers` in `.claude/settings.local.json` did not change that for `mcp list`). `claude doctor` reads project settings without a trust prompt and reports no invalid entries in `.claude/settings.json` (hooks, permissions); it does flag a malformed hook or permission list, so the check has teeth.
-- Codex: project `.codex/` is ignored until the project is trusted (docs: "Codex loads project `.codex/` layers only when you trust the project"). The script trusts the temp dir with the documented `[projects."<path>"] trust_level = "trusted"` in a temp `CODEX_HOME`; then `codex mcp list` shows both servers, `env_vars` and `bearer_token_env_var`.
+- Claude Code: `claude mcp list` lists both servers from `.mcp.json` as "Pending approval". Project servers need approval in an interactive session, and `enableAllProjectMcpServers` in `.claude/settings.local.json` does not change that for `mcp list`. `claude doctor` reads the project settings without a trust prompt and reports no invalid entries in `.claude/settings.json`. It does report a malformed hook or permission list, so the check catches real errors.
+- Codex: Codex ignores the project `.codex/` folder until the user trusts the project. The script trusts the temporary directory with the documented `[projects."<path>"] trust_level = "trusted"` in a temporary `CODEX_HOME`. Then `codex mcp list` shows both servers, with `env_vars` and `bearer_token_env_var`.
 - Cursor CLI: `cursor-agent mcp list` lists both servers from `.cursor/mcp.json` as "needs approval".
-- Not checked without a login: skills, rules, subagents, commands, hooks firing, and Cursor/Codex permissions. Each needs a model call.
+- The script does not check skills, rules, subagents, commands, hooks that fire, or Cursor and Codex permissions. Each of these needs a model call, and so a login.
 
-`scripts/try-local.sh [dir]` runs `npm test`, `npm run smoke`, then one short prompt per CLI you are logged in to (`claude -p`, `codex exec --sandbox read-only --ephemeral`, `cursor-agent -p --trust` or `agent -p --trust`), and checks that the answer names the example skills. A CLI that is not logged in is skipped. It works on Node 24 or later and on macOS, which has no `timeout`.
+`scripts/try-local.sh [dir]` runs `npm test` and `npm run smoke`. It then sends one short prompt to each CLI that you are logged in to, and checks that the answer names the example skills. The prompts use `claude -p`, `codex exec --sandbox read-only --ephemeral`, and `cursor-agent -p --trust` or `agent -p --trust`. The script skips a CLI that is not logged in. It runs on Node 24 or later and on macOS, which has no `timeout` command.

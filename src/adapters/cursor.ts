@@ -49,9 +49,9 @@ export const cursor: Adapter = {
       const allow: string[] = [], deny: string[] = [];
       for (const { key, body: p } of perms) {
         for (const [list, out] of [[p.allow, allow], [p.deny, deny]] as const) {
-          for (const cmd of list) cmd.includes(" ") ? warnings.push(`cursor: ${key} "${cmd}" (only single-word commands map to Shell())`) : out.push(`Shell(${cmd})`);
+          for (const cmd of list) cmd.includes(" ") ? warnings.push(`cursor: ${key} "${cmd}" is left out (Shell() matches only the first word)`) : out.push(`Shell(${cmd})`);
         }
-        for (const cmd of p.ask) warnings.push(`cursor: ${key} ask "${cmd}" (no ask list in .cursor/cli.json)`);
+        for (const cmd of p.ask) warnings.push(`cursor: ${key} ask "${cmd}" is left out (.cursor/cli.json has no ask list)`);
       }
       const rules = [...allow.map((r) => item(["permissions", "allow"], r)), ...deny.map((r) => item(["permissions", "deny"], r))];
       if (rules.length) files.push([user ? ".cursor/cli-config.json" : ".cursor/cli.json", entries(rules)]);

@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [master]
   pull_request:
 
 permissions:
@@ -20,7 +20,7 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run typecheck
-      # No agent CLIs are installed on the runner, so the smoke test only checks that the example project generates.
+      # The runner has no agent CLIs, so the smoke test only checks that the example project generates.
       - run: npm run smoke
-      # Forks publish the CLI; this builds dist/ and checks the package contents.
+      # Forks publish the CLI. This step builds dist/ and lists the package contents.
       - run: npm pack --dry-run

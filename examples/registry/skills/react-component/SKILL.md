@@ -6,4 +6,4 @@ description: Create a typed React component with a colocated test. Use when aske
 # React component
 
 Copy `templates/Component.tsx`, rename it, and add `Component.test.tsx` next to it.
-Props get an explicit type. No default exports.
+Give the props an explicit type. Use a named export, not a default export.

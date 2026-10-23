@@ -1,77 +1,75 @@
 # How agentproof-kit works
 
-This page covers the project files, the registry layout, presets, global installs, the code layout and the tests. [The CLI reference](cli.md) covers commands and output.
+agentproof-kit reads one manifest, `agents.json`, resolves it against a registry of pieces, and writes each agent's own config files. This page explains how the parts fit together. [The registry and manifest reference](registry.md) lists every field, and [the CLI reference](cli.md) lists every command.
 
-## Sync and update
+## The manifest says what you want, the lock says what you got
 
-`sync` and `check` load the registry at the commit in `agents.lock`. If the registry content at that commit no longer matches a piece's hash, both commands fail and tell you to run `update`. Run `sync` after a pull, and `update` when you want new pieces.
+You edit `agents.json`. It names a registry, a list of presets, pieces to add or remove on top of the presets, and the targets to write for. agentproof-kit resolves presets first, parents before children. It then adds the pieces in `add` and drops the pieces in `remove`.
 
-## The project files
+`update` writes the result to `agents.lock`. The lock records the registry commit, each piece's version and content hash, and the hash of every file that agentproof-kit writes whole. When `update` runs again, it deletes the files that the old lock listed and the new lock does not. [Decision 1](decisions/01-lockfile-with-hashes.md) explains why the lock holds hashes as well as versions.
 
-`agents.json` is the file you edit:
+## Sync rebuilds, update moves forward
+
+`sync` and `update` do different jobs. `sync` loads the registry at the commit in `agents.lock` and makes the files on disk match the lock. It never reads newer registry content. `update` reads the newest registry content and rewrites the lock. Run `sync` after you pull, and run `update` when you want new pieces or new versions.
+
+If the registry content at the locked commit no longer matches a piece's hash, `sync` and `check` both fail and tell you to run `update`. [Decision 4](decisions/04-sync-vs-update.md) covers why the two commands are separate.
+
+## Some files are shared with you
+
+agentproof-kit writes most files whole. A few files also hold settings that you or the agent wrote: `.mcp.json`, `.cursor/mcp.json`, `.cursor/hooks.json`, `.cursor/cli.json`, `.claude/settings.json`, `.codex/hooks.json`, and `.codex/config.toml`. In these files, agentproof-kit manages only its own entries, such as one MCP server or one permission rule. It records them under `owned` in `agents.lock`.
+
+Entries that you add by hand stay. If one of your entries has the same name as an entry that agentproof-kit wants to write, `update` stops with a `conflict` error that names it. [Decision 7](decisions/07-merge-owned-keys.md) has the details.
+
+`AGENTS.md` works the same way. agentproof-kit writes a section between `<!-- agentproof-kit:start -->` and `<!-- agentproof-kit:end -->` and replaces only that section. The rules for every target go there. Codex and Cursor read `AGENTS.md` directly. For Claude Code, agentproof-kit adds the line `@AGENTS.md` to `CLAUDE.md` and leaves the rest of that file alone ([decision 9](decisions/09-claude-rules-via-agents-md.md)).
+
+## Each skill is written once
+
+agentproof-kit writes every skill to `.agents/skills/<id>/`. Claude Code reads only `.claude/skills/`, so when `claude` is a target, agentproof-kit adds `.claude/skills/<id>` as a symlink to that copy. Your own skills in `.claude/skills/` stay. Cursor reads both folders and lists each skill twice, and `check` warns about it ([decision 8](decisions/08-one-skill-copy.md)).
+
+## Projects commit the generated files
+
+Commit `agents.json`, `agents.lock`, `AGENTS.md`, and the generated files. A teammate then gets the setup from `git pull` without installing agentproof-kit, and CI can run `check` to catch hand edits. Git must keep symlinks for the links in `.claude/skills/`. Git does this by default on macOS and Linux. [Decision 3](decisions/03-generated-files-committed.md) explains the trade-off.
+
+## Presets build on each other
+
+A preset is a named list of pieces. A preset can extend other presets, so a team keeps one `base` preset and builds on it. The example registry has two presets.
+
+`presets/base.json`:
 
 ```json
 {
-  "registry": "github:your-org/agent-registry#main",
-  "presets": ["frontend"],
-  "add": { "commands": ["ship"] },
-  "remove": { "hooks": ["format-on-edit"] },
-  "targets": ["cursor", "claude", "codex"]
+  "description": "Every repo: review skill, commit rules, GitHub MCP, explorer agent, git safety",
+  "skills": ["code-review"],
+  "mcp": ["github"],
+  "rules": ["conventional-commits", "typescript-strict"],
+  "agents": ["explorer"],
+  "hooks": ["block-force-push"],
+  "permissions": ["safe-git"]
 }
 ```
 
-`registry` is a path relative to the project, `github:<org>/<repo>#<ref>`, or `git:<url>#<ref>`. agentproof-kit clones git registries into `~/.cache/agentproof-kit`.
+`presets/frontend.json`:
 
-agentproof-kit resolves presets first, parents before children. It then adds `add` and drops `remove`.
-
-`agents.lock` records the registry commit, each piece's version and content hash, and the hash of every file agentproof-kit writes whole. `update` deletes files that the old lock listed and the new one does not.
-
-Some files are shared with the user: `.mcp.json`, `.cursor/mcp.json`, `.cursor/hooks.json`, `.cursor/cli.json`, `.claude/settings.json`, `.codex/hooks.json`, and `.codex/config.toml`. In these, agentproof-kit manages only its own entries, such as one MCP server or one permission rule, and records them under `owned` in `agents.lock`. Entries you add by hand stay. An entry of yours with the same name as one agentproof-kit wants to write stops `update` with an error that names it.
-
-`AGENTS.md` gets a section between `<!-- agentproof-kit:start -->` and `<!-- agentproof-kit:end -->`. agentproof-kit replaces only that section. Rules for every target live there. Codex and Cursor read `AGENTS.md` directly. For Claude Code, agentproof-kit makes sure `CLAUDE.md` has a line `@AGENTS.md` and leaves the rest of that file alone.
-
-Skills are written once, to `.agents/skills/<id>/`. When `claude` is a target, `.claude/skills/<id>` is a symlink to that copy, because Claude Code reads only `.claude/skills/`. Your own skills in `.claude/skills/` stay.
-
-Commit `agents.json`, `agents.lock`, `AGENTS.md`, and the generated files. Then a teammate gets the setup from `git pull`, and CI can run `check`. Git must keep symlinks (the default on macOS and Linux) for the `.claude/skills/` links.
-
-To try it on your machine with the agent CLIs you already use, run `bash scripts/try-local.sh`. See [Checked against the real CLIs](formats.md#checked-against-the-real-clis).
-
-## The registry
-
-```
-registry.json                 index of pieces and presets, with versions
-skills/<id>/SKILL.md          plus any supporting files in the folder
-mcp/<id>.json                 {"command", "args", "env": [NAMES]} or {"url", "bearerTokenEnv"}
-rules/<id>.md                 frontmatter: description, globs, alwaysApply
-commands/<id>.md
-agents/<id>.md                frontmatter: name, description, model, readonly
-hooks/<id>.json               {"event": "preShell" | "postEdit", "script": "<file>"}
-hooks/<script>
-permissions/<id>.json         {"allow": [...], "ask": [...], "deny": [...]} shell command prefixes
-presets/<id>.json             {"extends": [...], "skills": [...], "mcp": [...], ...}
+```json
+{
+  "description": "Frontend repos: base plus React skill, rules, docs MCP and formatting",
+  "extends": ["base"],
+  "skills": ["react-component"],
+  "mcp": ["context7"],
+  "rules": ["react"],
+  "hooks": ["format-on-edit"]
+}
 ```
 
-MCP files list environment variable names, never values. agentproof-kit writes each target's own reference syntax, such as `${env:NAME}` for Cursor and `${NAME}` for Claude Code.
+A project with `"presets": ["frontend"]` gets every piece from both presets. agentproof-kit installs a piece that two presets list only once. It rejects a preset that extends itself, directly or through another preset.
 
-## Presets
+## Secrets stay out of the registry
 
-A preset is a named list of pieces. A preset can `extend` others, so a team keeps one `base` and builds on it:
+An MCP piece lists the names of the environment variables it needs, never their values. Each adapter writes the reference syntax of its target, such as `${env:NAME}` for Cursor and `${NAME}` for Claude Code. The agent reads the value from your environment when it starts the server. `check` fails with `env-missing` when a named variable is not set ([decision 2](decisions/02-secrets-by-name.md)).
 
-```jsonc
-// presets/base.json
-{ "skills": ["code-review"], "mcp": ["github"], "rules": ["conventional-commits"], "hooks": ["block-force-push"] }
+## Global installs use the same model
 
-// presets/frontend.json
-{ "extends": ["base"], "skills": ["react-component"], "mcp": ["context7"], "rules": ["react"] }
-```
-
-A project with `"presets": ["frontend"]` gets both skills, both MCP servers, and every rule and hook from both presets. A piece listed twice is installed once. agentproof-kit rejects a preset that extends itself, directly or through another preset.
-
-[`examples/registry`](../examples/registry) has these two presets with every piece they name.
-
-## Global install
-
-`--global` installs pieces for your user instead of a project. It works with every command:
+`--global` installs pieces for your user instead of a project. Every command accepts it:
 
 ```sh
 agentproof-kit init --global --registry ~/src/my-registry --preset base
@@ -79,30 +77,29 @@ agentproof-kit add --global mcp/github
 agentproof-kit check --global
 ```
 
-`agents.json` and `agents.lock` live in `$XDG_CONFIG_HOME/agentproof-kit` (default `~/.config/agentproof-kit`). Files go under your home directory: skills in `~/.agents/skills` (linked from `~/.claude/skills`), MCP servers in `~/.claude.json`, `~/.codex/config.toml` and `~/.cursor/mcp.json`, and rules in `~/.claude/CLAUDE.md` and `~/.codex/AGENTS.md`, and Claude commands in `~/.claude/commands`. agentproof-kit changes only its own entries in these shared files.
+The manifest and the lock live in `$XDG_CONFIG_HOME/agentproof-kit`, which defaults to `~/.config/agentproof-kit`. The files go under your home directory. For example, skills go to `~/.agents/skills` with links from `~/.claude/skills`, and MCP servers go to `~/.claude.json`, `~/.codex/config.toml`, and `~/.cursor/mcp.json`. agentproof-kit changes only its own entries in these shared files.
 
-Cursor user rules and Cursor and Codex commands have no documented user location, so `check --global` prints an `unsupported` warning for them. In both scopes, unsupported pieces are warnings and do not change the exit code. In a project, `check` warns about any piece installed both globally and in that project. [Decision 11](decisions/11-global-install.md) lists every path and its source.
+Cursor user rules, Cursor commands, and Codex commands have no documented user location. `check --global` prints an `unsupported` warning for them. In both scopes, unsupported pieces are warnings and do not change the exit code. In a project, `check` also warns about each piece that is installed both globally and in that project. [Decision 11](decisions/11-global-install.md) lists every user path and its source.
 
-## How the code is laid out
+## Adapters turn pieces into files
 
-```
+The code has one job per file:
+
+```text
 src/types.ts          the data model: pieces, presets, manifest, lock, adapter
 src/parse.ts          turns JSON and frontmatter into typed values, or throws ParseError
-src/registry.ts       loads a registry from a path or a git clone, reads and hashes pieces
-src/resolve.ts        presets and add/remove to a sorted list of piece keys
+src/registry.ts       loads a registry from a path or a git clone, and reads and hashes pieces
+src/resolve.ts        turns presets, add, and remove into a sorted list of piece keys
+src/merge.ts          applies owned entries to shared JSON and TOML files
 src/adapters/*.ts     one file per target: pieces in, file contents out
-src/project.ts        update, sync, check, and the AGENTS.md section
-src/cli.ts            the command table, argument parsing, JSON and text output, exit codes
+src/project.ts        init, add, remove, update, sync, check, and the AGENTS.md section
+src/cli.ts            the command table, argument parsing, output, and exit codes
 ```
 
-Parsing happens once, at the edge. `resolve.ts` and the adapters are pure functions, so the tests call them without touching git. `project.ts` compares each file's content before it writes, and writes through a temporary file and a rename. Two `sync` runs in a row leave the tree unchanged.
+`src/parse.ts` validates input once, when it enters the program. `src/resolve.ts` and the adapters are pure functions, so tests call them with plain objects and no git. `src/project.ts` does all the disk access. It compares each file with what is on disk before it writes, and it writes through a temporary file and a rename. Two `sync` runs in a row leave the tree unchanged ([decision 6](decisions/06-pure-adapters.md)).
 
-## Tests
+## Tests run against the real agent CLIs when they are installed
 
-```sh
-npm test
-npm run typecheck
-npm run smoke
-```
+`npm test` runs the unit tests and `npm run typecheck` runs `tsc`. `npm run smoke` generates the example project and asks each installed agent CLI (`claude`, `codex`, `cursor-agent`) which MCP servers and settings it loaded. It skips a CLI that is not installed, so on the CI runner it only checks that the example project generates. [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) runs all of these on every pull request and on every push to `master`.
 
-`npm run smoke` generates the example project and asks each installed agent CLI (`claude`, `codex`, `cursor-agent`) which MCP servers and settings it loaded. CLIs that are not installed are skipped, so CI runs only the generate step. [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) runs all three on every pull request.
+To try the example on your machine with the agent CLIs that you are logged in to, run `bash scripts/try-local.sh`. [Checked against the real CLIs](formats.md#checked-against-the-real-clis) describes what each script checks.

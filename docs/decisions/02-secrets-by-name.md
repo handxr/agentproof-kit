@@ -11,7 +11,7 @@ An MCP piece lists the names of the environment variables it needs, such as `GIT
 ## What you can safely change
 
 - How a target references a variable, if that target documents the syntax. Change it in the adapter and add the source to `docs/formats.md`.
-- Where `check` looks for variables. It reads `process.env` today. You can add a lookup in your secret manager, as long as `check` still only reports whether the value exists.
+- Where `check` looks for variables. It reads `process.env`. You can add a lookup in your secret manager, as long as `check` still only reports whether the value exists.
 
 ## What breaks if you change it
 

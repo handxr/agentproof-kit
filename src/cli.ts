@@ -96,10 +96,10 @@ const COMMANDS: Record<string, Command> = {
 
 const COMMON = `Options for every command:
   --dir <path>   Project directory. Default: the current directory.
-  --global, -g   Use your user setup: agents.json and agents.lock in $XDG_CONFIG_HOME/agentproof-kit
-                 (default ~/.config/agentproof-kit), generated files under $HOME. Not with --dir.
+  --global, -g   Use your user setup. agents.json and agents.lock go in $XDG_CONFIG_HOME/agentproof-kit
+                 (default ~/.config/agentproof-kit), and generated files go under $HOME. Not with --dir.
   --json         Print one JSON result on stdout. See docs/cli.md for the schema.
-  --dry-run      Commands that write: list the changes and write nothing.
+  --dry-run      List the changes and write nothing. Only for commands that write.
   --help, -h     Show help for a command.
 
 Exit codes: 0 ok, 1 problems, 2 usage error.`;
@@ -155,8 +155,8 @@ function main(argv: string[]): { result: Result; text?: string | undefined; json
     const cmd = COMMANDS[name];
     if (!cmd) usageError(`unknown command "${name}"`);
     if (values.help) return { result: { ...result, ok: true }, text: helpFor(cmd!), json: false };
-    if (values.global && values.dir) usageError("--global and --dir cannot be combined", `agentproof-kit ${name} --help`);
-    if (values["dry-run"] && !cmd!.writes) usageError(`${name} does not write, so --dry-run does not apply`, `agentproof-kit ${name} --help`);
+    if (values.global && values.dir) usageError("use --global or --dir, not both", `agentproof-kit ${name} --help`);
+    if (values["dry-run"] && !cmd!.writes) usageError(`--dry-run applies only to commands that write, and ${name} does not write`, `agentproof-kit ${name} --help`);
     const place: Place = { ...(values.global ? userPlace() : placeOf(values.dir ?? process.cwd())), dryRun: !!values["dry-run"] };
     const out = cmd!.run(place, args, values);
     result.changes = (out.changed ?? []).map((c) => (c.startsWith("- ") ? { path: c.slice(2), action: "delete" } : { path: c, action: "write" }));

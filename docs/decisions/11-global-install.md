@@ -2,7 +2,7 @@
 
 ## Context
 
-Some pieces belong to a person, not a project: a review skill, a GitHub MCP server, a force-push guard. Every target has a user-level location for most piece types, but not all of them, and the paths differ from the project ones only in a few places. Every path below was checked in the official docs:
+Some pieces belong to a person, not a project. Examples are a review skill, a GitHub MCP server, and a hook that blocks force pushes. Each target has a user-level location for most piece types, but not for all of them. The user paths differ from the project paths in only a few places. Each path in this table comes from the target's official docs.
 
 | Piece | Claude Code | Codex | Cursor |
 | --- | --- | --- | --- |
@@ -16,9 +16,9 @@ Some pieces belong to a person, not a project: a review skill, a GitHub MCP serv
 
 ## Decision
 
-`--global` on every command swaps the project directory for a `Place` in `src/project.ts`: `{ scope: "user", config, root }`. `agents.json` and `agents.lock` live in `config`, which is `$XDG_CONFIG_HOME/agentproof-kit` or `~/.config/agentproof-kit`. Files go under `root`, which is `$HOME`. A plain directory string still means the project place, so nothing else changed.
+With `--global`, every command uses a user `Place` from `userPlace` in `src/project.ts`, `{ scope: "user", config, root }`, instead of the project directory. `agents.json` and `agents.lock` live in `config`, which is `$XDG_CONFIG_HOME/agentproof-kit` or `~/.config/agentproof-kit`. Files go under `root`, which is `$HOME`. A project `Place` keeps its old meaning, so project installs did not change.
 
-The adapters stay pure. `render(pieces, scope)` returns user paths when `scope` is `"user"`, and lists a piece type with no documented user location as unsupported, so `check --global` warns about it, as it does for projects ([decision 5](05-check-errors-vs-warnings.md)). Shared files use the same owned-entries merge as in projects ([decision 7](07-merge-owned-keys.md)), so your other entries in `~/.claude.json`, `~/.claude/settings.json` and the rest survive. The managed section goes into each agent's own instruction file instead of one `AGENTS.md`, so there is no `@AGENTS.md` import at user scope.
+The adapters stay pure. `render(pieces, scope)` returns user paths when `scope` is `"user"`, and lists a piece type with no documented user location as unsupported, so `check --global` warns about it, as it does for projects ([decision 5](05-check-errors-vs-warnings.md)). Shared files use the same owned-entries merge as in projects ([decision 7](07-merge-owned-keys.md)), so your other entries in `~/.claude.json`, `~/.claude/settings.json`, and the other shared files stay. The managed section goes into each agent's own instruction file instead of one `AGENTS.md`, so there is no `@AGENTS.md` import at user scope.
 
 `check` in a project reads the user lock too and warns about each piece installed in both places, because most agents would load it twice.
 
@@ -29,11 +29,11 @@ The adapters stay pure. `render(pieces, scope)` returns user paths when `scope` 
 
 ## What breaks if you change it
 
-- Writing a user install with project paths (`.mcp.json`, `CLAUDE.md` in `$HOME`) produces files no agent reads at user scope.
-- Taking a whole shared file such as `~/.claude.json` would wipe Claude's own state there. Only the owned entries may be touched.
-- Tests that run without a throwaway HOME would write into the real one. `test/helpers.ts` sets one for every test process.
+- If a user install writes project paths, such as `.mcp.json` or `CLAUDE.md` in `$HOME`, no agent reads those files at user scope.
+- If agentproof-kit rewrote a whole shared file such as `~/.claude.json`, it would delete Claude's own state there. agentproof-kit changes only its owned entries.
+- A test that runs without a throwaway `HOME` writes into the real one. `test/helpers.ts` sets a throwaway `HOME` for every test process.
 
 ## Known limits
 
-- Cursor also loads `~/.claude/skills`, so with both `claude` and `cursor` targeted it may list each skill twice, as in projects ([decision 8](08-one-skill-copy.md)).
+- Cursor also loads `~/.claude/skills`. When both `claude` and `cursor` are targets, Cursor lists each skill twice, as in projects ([decision 8](08-one-skill-copy.md)).
 - `CODEX_HOME` and `CLAUDE_CONFIG_DIR` are not read. agentproof-kit always writes to `~/.codex` and `~/.claude`.
