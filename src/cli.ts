@@ -1,80 +1,190 @@
 #!/usr/bin/env node
-// Command-line boundary: parse argv, call one operation, print, set the exit code.
-import { existsSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+// Command-line boundary: parse argv, run one command, print the result, set the exit code.
+// Nothing here reads stdin or prompts. Every failure becomes a Problem with a stable code.
 import { parseArgs } from "node:util";
-import { ParseError, parsePieceKey, splitKey } from "./parse.ts";
-import { add, check, init, readLock, readManifest, sync, update, userPlace } from "./project.ts";
+import { ParseError, parsePieceKey } from "./parse.ts";
+import { add, check, init, placeOf, readLock, readManifest, removePieces, sync, update, userPlace } from "./project.ts";
+import type { Place } from "./project.ts";
 import { loadPiece, loadRegistry } from "./registry.ts";
+import type { Problem, ProblemCode, Scope } from "./types.ts";
 
-const USAGE = `agent-kit <command> [options]
+/** The `--json` output of every command. The shape is documented in docs/cli.md. */
+export type Result = {
+  ok: boolean;
+  command: string;
+  scope: Scope;
+  dryRun: boolean;
+  changes: { path: string; action: "write" | "delete" }[];
+  problems: Problem[];
+  warnings: string[];
+  data?: unknown;
+};
 
-  init --registry <src> [--preset <id>]... [--target <t>]...   write agents.json, then update
-  add <type>/<id>...        add pieces to agents.json, then update
-  update                    re-resolve from the registry, rewrite agents.lock and files
-  sync                      make files match agents.lock (no new versions)
-  check                     fail on drift, outdated lock, missing env vars (warns on unsupported pieces)
-  list                      list registry pieces and presets (* = installed)
-  show <type>/<id>          print a piece's metadata and files
+type Opts = { registry?: string; preset?: string[]; target?: string[]; skill?: boolean };
+type Outcome = { changed?: string[]; problems?: Problem[]; warnings?: string[]; data?: unknown; text?: string | undefined };
+type Command = { usage: string; summary: string; writes: boolean; run: (where: Place, args: string[], o: Opts) => Outcome };
 
-  --dir <path>              project directory (default: cwd)
-  --global                  install for your user instead of a project: agents.json and
-                            agents.lock in $XDG_CONFIG_HOME/agent-kit (default ~/.config/agent-kit),
-                            files under $HOME (init, add, update, sync, check)`;
+const SKILL = "skills/agent-kit";
+const registryOf = (config: string) => loadRegistry(readManifest(config).registry, config, readLock(config)?.registry.commit ?? null);
+const needKeys = (cmd: string, args: string[]) => {
+  if (!args.length) throw new ParseError(`${cmd} needs at least one <type>/<id>`, "usage", `agent-kit ${cmd} --help`);
+};
 
-function main(argv: string[]): number {
-  const { values, positionals } = parseArgs({
-    args: argv,
-    allowPositionals: true,
-    options: { dir: { type: "string" }, registry: { type: "string" }, preset: { type: "string", multiple: true }, target: { type: "string", multiple: true }, help: { type: "boolean", short: "h" }, global: { type: "boolean", short: "g" } },
-  });
-  const [cmd, ...args] = positionals;
-  if (values.global && values.dir) throw new ParseError("--global and --dir cannot be combined");
-  const dir = values.dir ?? process.cwd();
-  const where = values.global ? userPlace() : dir;
-  const config = typeof where === "string" ? where : where.config;
-  const report = (changed: string[]) => console.log(changed.length ? changed.map((c) => `  ${c}`).join("\n") : "  up to date");
+const COMMANDS: Record<string, Command> = {
+  init: {
+    usage: "init --registry <src> [--preset <id>]... [--target <t>]... [--no-skill]",
+    summary: `Write agents.json, then update. Adds ${SKILL} when the registry has it, unless you pass --no-skill.`,
+    writes: true,
+    run: (where, _args, o) => {
+      if (!o.registry) throw new ParseError("init needs --registry <src>", "usage", "agent-kit init --registry <src>");
+      const warnings: string[] = [];
+      const extra: Record<string, string[]> = {};
+      if (o.skill !== false) {
+        if (loadRegistry(o.registry, where.config, null).index.has(parsePieceKey(SKILL))) extra.skills = ["agent-kit"];
+        else warnings.push(`registry ${o.registry} has no ${SKILL}; agents will not get the agent-kit skill`);
+      }
+      const changed = init(where, { registry: o.registry, presets: o.preset ?? [], add: extra, remove: {}, targets: o.target ?? ["cursor", "claude", "codex"] });
+      return { changed, warnings };
+    },
+  },
+  add: { usage: "add <type>/<id>...", summary: "Add pieces to agents.json, then update.", writes: true, run: (w, a) => (needKeys("add", a), { changed: add(w, a) }) },
+  remove: {
+    usage: "remove <type>/<id>...",
+    summary: "Remove pieces from agents.json, then update. Deletes only the files and entries agent-kit wrote.",
+    writes: true,
+    run: (w, a) => (needKeys("remove", a), { changed: removePieces(w, a) }),
+  },
+  update: { usage: "update", summary: "Re-resolve agents.json from the registry. Rewrites agents.lock and the generated files.", writes: true, run: (w) => ({ changed: update(w) }) },
+  sync: { usage: "sync", summary: "Make the generated files match agents.lock. Never fetches new piece versions.", writes: true, run: (w) => ({ changed: sync(w) }) },
+  check: {
+    usage: "check",
+    summary: "Report drift, an outdated lock and missing env vars. Exits 1 on problems. Unsupported pieces are warnings.",
+    writes: false,
+    run: (w) => {
+      const r = check(w);
+      return { problems: r.problems, warnings: r.warnings, text: r.ok ? "check: ok" : undefined };
+    },
+  },
+  list: {
+    usage: "list",
+    summary: "List the registry's pieces and presets. * marks installed pieces.",
+    writes: false,
+    run: (w) => {
+      const reg = registryOf(w.config);
+      const installed = new Set(Object.keys(readLock(w.config)?.pieces ?? {}));
+      const pieces = [...reg.index].map(([key, m]) => ({ key, version: m.version, description: m.description, installed: installed.has(key) }));
+      const presets = [...reg.presets].map(([id, p]) => ({ id, extends: [...p.extends] }));
+      const text = [
+        ...pieces.map((p) => `${p.installed ? "*" : " "} ${p.key.padEnd(28)} ${p.version.padEnd(8)} ${p.description}`),
+        ...presets.map((p) => `  presets/${p.id.padEnd(20)} extends [${p.extends.join(", ")}]`),
+      ].join("\n");
+      return { data: { pieces, presets }, text };
+    },
+  },
+  show: {
+    usage: "show <type>/<id>",
+    summary: "Print a piece's metadata and files.",
+    writes: false,
+    run: (w, a) => {
+      if (a.length !== 1) throw new ParseError("show needs exactly one <type>/<id>", "usage", "agent-kit show --help");
+      const p = loadPiece(registryOf(w.config), parsePieceKey(a[0]!));
+      const data = JSON.parse(JSON.stringify({ key: p.key, version: p.version, description: p.description, hash: p.hash, body: p.body }, (_k, v: unknown) => (v instanceof Map ? Object.fromEntries(v) : v)));
+      return { data, text: JSON.stringify(data, null, 2) };
+    },
+  },
+};
 
-  switch (cmd) {
-    case "init": {
-      if (!values.registry) throw new ParseError("init needs --registry");
-      report(init(where, { registry: values.registry, presets: values.preset ?? [], add: {}, remove: {}, targets: values.target ?? ["cursor", "claude", "codex"] }));
-      return 0;
-    }
-    case "add": report(add(where, args)); return 0;
-    case "update": report(update(where)); return 0;
-    case "sync": report(sync(where)); return 0;
-    case "check": {
-      const { ok, problems, warnings } = check(where);
-      for (const w of warnings) console.log(`warning: ${w}`);
-      console.log(ok ? "check: ok" : `check: ${problems.length} problem(s)\n${problems.map((p) => `  ${p.code}: ${p.message}`).join("\n")}`);
-      return ok ? 0 : 1;
-    }
-    case "list": {
-      const m = readManifest(config);
-      const reg = loadRegistry(m.registry, config, readLock(config)?.registry.commit ?? null);
-      const installed = new Set(Object.keys(readLock(config)?.pieces ?? {}));
-      for (const [k, meta] of reg.index) console.log(`${installed.has(k) ? "*" : " "} ${k.padEnd(28)} ${meta.version.padEnd(8)} ${meta.description}`);
-      for (const [id, p] of reg.presets) console.log(`  presets/${id.padEnd(20)} extends [${p.extends.join(", ")}]`);
-      return 0;
-    }
-    case "show": {
-      const m = readManifest(config);
-      const reg = loadRegistry(m.registry, config, readLock(config)?.registry.commit ?? null);
-      const p = loadPiece(reg, parsePieceKey(args[0] ?? ""));
-      console.log(JSON.stringify({ key: p.key, version: p.version, description: p.description, hash: p.hash, body: p.body }, (_k, v: unknown) => (v instanceof Map ? Object.fromEntries(v) : v), 2));
-      return 0;
-    }
-    default:
-      console.log(USAGE);
-      return cmd === undefined || values.help ? 0 : 2;
+const COMMON = `Options for every command:
+  --dir <path>   Project directory. Default: the current directory.
+  --global, -g   Use your user setup: agents.json and agents.lock in $XDG_CONFIG_HOME/agent-kit
+                 (default ~/.config/agent-kit), generated files under $HOME. Not with --dir.
+  --json         Print one JSON result on stdout. See docs/cli.md for the schema.
+  --dry-run      Commands that write: list the changes and write nothing.
+  --help, -h     Show help for a command.
+
+Exit codes: 0 ok, 1 problems, 2 usage error.`;
+
+const USAGE = `Usage: agent-kit <command> [options]
+
+Commands:
+${Object.values(COMMANDS).map((c) => `  ${c.usage.split(" ")[0]!.padEnd(8)} ${c.summary}`).join("\n")}
+
+${COMMON}
+
+Run agent-kit <command> --help for one command.`;
+const helpFor = (c: Command) => `Usage: agent-kit ${c.usage} [options]\n\n${c.summary}\n\n${COMMON}`;
+
+const usageError = (message: string, fix = "agent-kit --help"): never => {
+  throw new ParseError(message, "usage", fix);
+};
+
+function toProblem(e: unknown): Problem {
+  if (e instanceof ParseError) return { code: e.code, message: e.message, fix: e.fix };
+  if (e instanceof SyntaxError) return { code: "invalid-config", message: `invalid JSON: ${e.message}`, fix: null };
+  const err = e as NodeJS.ErrnoException;
+  if (typeof err?.code === "string" && err.code.startsWith("ERR_PARSE_ARGS")) return { code: "usage", message: err.message, fix: "agent-kit --help" };
+  const where = err?.path ? ` (${err.path})` : "";
+  return { code: "internal" satisfies ProblemCode, message: `${err?.code ? `${err.code}: ` : ""}${err?.message ?? String(e)}${where}`.replace(/^(\w+): \1: /, "$1: "), fix: null };
+}
+
+/** Make a fix command runnable as is: same scope, same --dir. */
+function scopedFix(fix: string | null, extra: string): string | null {
+  if (!fix || !fix.startsWith("agent-kit ") || fix.startsWith("agent-kit --") || fix.endsWith(" --help")) return fix;
+  return fix + extra;
+}
+
+function main(argv: string[]): { result: Result; text?: string | undefined; json: boolean } {
+  const json = argv.includes("--json");
+  const result: Result = { ok: false, command: argv.find((a) => !a.startsWith("-")) ?? "", scope: argv.includes("--global") || argv.includes("-g") ? "user" : "project", dryRun: argv.includes("--dry-run"), changes: [], problems: [], warnings: [] };
+  let extra = "";
+  try {
+    const { values, positionals } = parseArgs({
+      args: argv,
+      allowPositionals: true,
+      allowNegative: true,
+      options: {
+        dir: { type: "string" }, registry: { type: "string" }, preset: { type: "string", multiple: true }, target: { type: "string", multiple: true },
+        help: { type: "boolean", short: "h" }, global: { type: "boolean", short: "g" }, json: { type: "boolean" }, "dry-run": { type: "boolean" }, skill: { type: "boolean" },
+      },
+    });
+    const [name, ...args] = positionals;
+    result.command = name ?? "";
+    if (values.global) extra += " --global";
+    if (values.dir) extra += ` --dir ${values.dir}`;
+    if (name === undefined) return { result: { ...result, ok: !!values.help }, text: USAGE, json: false };
+    const cmd = COMMANDS[name];
+    if (!cmd) usageError(`unknown command "${name}"`);
+    if (values.help) return { result: { ...result, ok: true }, text: helpFor(cmd!), json: false };
+    if (values.global && values.dir) usageError("--global and --dir cannot be combined", `agent-kit ${name} --help`);
+    if (values["dry-run"] && !cmd!.writes) usageError(`${name} does not write, so --dry-run does not apply`, `agent-kit ${name} --help`);
+    const place: Place = { ...(values.global ? userPlace() : placeOf(values.dir ?? process.cwd())), dryRun: !!values["dry-run"] };
+    const out = cmd!.run(place, args, values);
+    result.changes = (out.changed ?? []).map((c) => (c.startsWith("- ") ? { path: c.slice(2), action: "delete" } : { path: c, action: "write" }));
+    result.problems = out.problems ?? [];
+    result.warnings = out.warnings ?? [];
+    if (out.data !== undefined) result.data = out.data;
+    result.ok = result.problems.length === 0;
+    return { result, text: out.text, json };
+  } catch (e) {
+    result.problems = [toProblem(e)];
+    return { result, json };
+  } finally {
+    for (const p of result.problems) p.fix !== undefined && Object.assign(p, { fix: scopedFix(p.fix, extra) });
   }
 }
 
-try {
-  process.exitCode = main(process.argv.slice(2));
-} catch (e) {
-  if (!(e instanceof ParseError) && !(e instanceof SyntaxError) && (e as NodeJS.ErrnoException).code === undefined) throw e;
-  console.error(`agent-kit: ${(e as Error).message}`);
-  process.exitCode = 1;
+const color = (code: string, s: string, tty: boolean) => (tty && !process.env.NO_COLOR ? `\x1b[${code}m${s}\x1b[0m` : s);
+
+function print({ result: r, text, json }: ReturnType<typeof main>) {
+  if (json) return void process.stdout.write(`${JSON.stringify(r, null, 2)}\n`);
+  const errTty = !!process.stderr.isTTY;
+  for (const w of r.warnings) console.error(`${color("33", "warning", errTty)}: ${w}`);
+  if (text !== undefined) console.log(text);
+  if (r.changes.length) console.log(`${r.dryRun ? "would change" : "changed"}:\n${r.changes.map((c) => `  ${c.action === "delete" ? "- " : ""}${c.path}`).join("\n")}`);
+  else if (COMMANDS[r.command]?.writes && r.ok) console.log("up to date");
+  for (const p of r.problems) console.error(`${color("31", `error[${p.code}]`, errTty)}: ${p.message.replaceAll("\n", "\n  ")}${p.fix ? `\n  fix: ${p.fix}` : ""}`);
 }
+
+const run = main(process.argv.slice(2));
+print(run);
+process.exitCode = run.result.ok ? 0 : run.result.problems.some((p) => p.code === "usage") ? 2 : 1;

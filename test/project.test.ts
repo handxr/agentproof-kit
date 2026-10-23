@@ -91,7 +91,7 @@ test("check fails on an outdated lock; unsupported pieces are warnings with exit
   assert.ok(r.warnings.includes("unsupported: codex: commands/ship (commands not supported)"));
   const cli = spawnSync(process.execPath, [join(import.meta.dirname, "../src/cli.ts"), "check", "--dir", project], { env: { ...process.env, ...ENV } });
   assert.equal(cli.status, 0, cli.stderr.toString());
-  assert.match(cli.stdout.toString(), /warning: unsupported: codex: commands\/ship/);
+  assert.match(cli.stderr.toString(), /warning: unsupported: codex: commands\/ship/);
 });
 
 test("AGENTS.md keeps hand-written text outside the markers", () => {

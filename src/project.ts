@@ -264,7 +264,10 @@ function lockedPieces(dir: string, lock: Lock): { reg: Registry; pieces: Piece[]
 export function sync(where: Where): string[] {
   const { scope, config } = placeOf(where);
   const lock = readLock(config);
-  if (!lock) throw new ParseError(`no ${LOCK} in ${config}`, "lock-missing", "agent-kit update");
+  if (!lock) {
+    readRawManifest(config); // with neither file, the first fix is init
+    throw new ParseError(`no ${LOCK} in ${config}`, "lock-missing", "agent-kit update");
+  }
   const { pieces, drift } = lockedPieces(config, lock);
   if (drift.length) throw new ParseError(drift.join("\n"), "registry-changed", "agent-kit update");
   return apply(where, lock, render(pieces, lock.targets, scope), lock);
