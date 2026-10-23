@@ -330,5 +330,9 @@ export function check(where: Where, env: NodeJS.ProcessEnv = process.env): Check
   const warnings = [...r.warnings, ...r.unsupported.map((u) => `unsupported: ${u}`)];
   const global = scope === "project" ? readLock(userPlace(env).config) : null;
   for (const k of Object.keys(lock.pieces)) if (global && k in global.pieces) warnings.push(`${k} is installed both globally and in this project`);
+  // Cursor also reads .claude/skills, where the Claude link points at the same folder.
+  if (lock.targets.includes("cursor") && lock.targets.includes("claude") && pieces.some((p) => p.body.type === "skills")) {
+    warnings.push("cursor lists each skill twice: it reads both .agents/skills and .claude/skills (same files, no conflict)");
+  }
   return { ok: problems.length === 0, problems, warnings };
 }

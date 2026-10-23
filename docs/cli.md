@@ -39,7 +39,7 @@ With `--json`, every command prints one object with these keys:
 | `dryRun` | boolean | `true` with `--dry-run`. Then `changes` lists what would change. |
 | `changes` | `{ path, action }[]` | Every file written or deleted. `action` is `"write"` or `"delete"`. `path` is relative to the project, or to `$HOME` with `--global`. |
 | `problems` | `{ code, message, fix }[]` | What went wrong. See [Problem codes](#problem-codes). |
-| `warnings` | string[] | Things worth knowing that do not change the exit code, such as a piece a target cannot install. |
+| `warnings` | string[] | Things worth knowing that do not change the exit code, such as a piece a target cannot install, or `cursor lists each skill twice` when both `cursor` and `claude` are targets. |
 | `data` | object | Only on `list` and `show`. |
 
 `list` returns `data: { pieces: [{ key, version, description, installed }], presets: [{ id, extends }] }`. `show` returns `data: { key, version, description, hash, body }`.

@@ -199,3 +199,14 @@ test("an agent with only --json and the skill gets through init, add, check and 
   assert.ok(step("check").ok);
   assert.ok(!existsSync(join(dir, ".mcp.json")) || !("github" in JSON.parse(readFileSync(join(dir, ".mcp.json"), "utf8")).mcpServers));
 });
+
+test("check warns that cursor lists skills twice only when cursor and claude are both targets", () => {
+  const dup = (w: string) => w.startsWith("cursor lists each skill twice");
+  for (const [targets, warns] of [[["cursor", "claude"], true], [["cursor", "codex"], false], [["claude", "codex"], false]] as const) {
+    const { project } = fixture({ targets });
+    assert.equal(run(["update", "--dir", project]).status, 0);
+    const r = json(["check", "--dir", project]);
+    assert.equal(r.status, 0, `${targets}`);
+    assert.equal(r.out.warnings.some(dup), warns, `${targets}`);
+  }
+});
