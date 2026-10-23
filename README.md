@@ -46,7 +46,8 @@ node ../../src/cli.ts check
 ## Read the docs
 
 - [Fork agentproof-kit for your team](docs/forking.md) shows how to rename it and publish it to a private registry.
-- [How agentproof-kit works](docs/usage.md) covers the project files, the registry layout, presets, global installs, the code layout, and the tests.
+- [How agentproof-kit works](docs/usage.md) explains the manifest, the lock, shared files, presets, global installs, and the code layout.
+- [The registry and manifest reference](docs/registry.md) lists every field in `agents.json` and every file in a registry.
 - [The CLI reference](docs/cli.md) lists every command, the `--json` output, the problem codes, and the exit codes.
 - [Target formats](docs/formats.md) lists every file that each agent reads.
 - [Design decisions](docs/decisions/README.md) explains why it works this way. [Decision 10](docs/decisions/10-known-limitations.md) lists the known limitations.
