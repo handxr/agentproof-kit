@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Generate the example project into a temp dir and ask each real agent CLI what it loaded.
 # Only checks that need no login run. Each CLI gets an empty, throwaway home so user config
-# on this machine cannot leak in. Env values are dummies: we only test that names are wired.
+# on this machine cannot leak in. A CLI that is not installed is skipped, so CI runs only the generate step. Env values are dummies: we only test that names are wired.
 set -uo pipefail
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 # macOS has no `timeout`; perl's alarm does the same job. Resolve /var -> /private/var so Codex's trust key matches.
@@ -32,7 +32,7 @@ if command -v claude >/dev/null; then
   if has "$doc" "Invalid settings"; then echo "$doc" | sed -n '/Invalid settings/,/^$/p' | sed 's/^/    /'; bad "claude doctor reports invalid settings"; else ok "claude doctor: .claude/settings.json (hooks, permissions) and .mcp.json valid"; fi
   unset CLAUDE_CONFIG_DIR
   skip "skills, subagents, rules loaded by Claude: needs login (model call)"
-else bad "claude not installed"; fi
+else skip "claude not installed"; fi
 
 echo "== Codex $(codex --version 2>/dev/null || echo 'not installed')"
 if command -v codex >/dev/null; then
@@ -47,7 +47,7 @@ if command -v codex >/dev/null; then
   has "$out" "CONTEXT7_API_KEY" && ok "bearer_token_env_var read" || bad "bearer_token_env_var not shown"
   unset CODEX_HOME
   skip "skills, subagents, hooks, rules loaded by Codex: needs login (model call)"
-else bad "codex not installed"; fi
+else skip "codex not installed"; fi
 
 echo "== Cursor CLI $([ -n "$CURSOR" ] && "$CURSOR" --version 2>/dev/null || echo 'not installed')"
 if [ -n "$CURSOR" ]; then
@@ -55,8 +55,9 @@ if [ -n "$CURSOR" ]; then
   servers "$out" "cursor-agent mcp list (.cursor/mcp.json)"
   has "$out" "needs approval" && echo "  note: project MCP servers need approval (cursor-agent mcp enable <id> or --approve-mcps)"
   skip "skills, rules, subagents, hooks, permissions loaded by Cursor: needs login (model call)"
-else bad "cursor-agent not installed"; fi
+else skip "cursor-agent not installed"; fi
 
+[ -f "$TMP/project/agents.lock" ] && ok "example project generated" || bad "no agents.lock"
 echo
 [ "$fails" -eq 0 ] && echo "smoke: ok" || echo "smoke: $fails failure(s)"
 exit $((fails > 0))
