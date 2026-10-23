@@ -6,7 +6,7 @@ A registry changes over time. A project needs to know which content it installed
 
 ## Decision
 
-`agents.lock` records the registry source and commit, and for each piece its version and a SHA-256 hash of its files. It also records the hash of every file agent-kit writes whole, and the entries it owns in shared files. `sync` refuses to run when the registry content for a piece no longer matches its hash.
+`agents.lock` records the registry source and commit, and for each piece its version and a SHA-256 hash of its files. It also records the hash of every file agentproof-kit writes whole, and the entries it owns in shared files. `sync` refuses to run when the registry content for a piece no longer matches its hash.
 
 The hash catches a change that a version alone misses. If someone edits a skill and forgets to bump its version in `registry.json`, the hash still changes and the edit still shows up in the lock diff.
 

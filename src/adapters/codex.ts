@@ -44,7 +44,7 @@ export const codex: Adapter = {
     if (perms.length) {
       const rules = perms.flatMap(({ key, body: p }) =>
         (["allow", "ask", "deny"] as const).flatMap((list) => p[list].map((cmd) => `# ${key}\nprefix_rule(pattern = ${toml(cmd.split(/\s+/))}, decision = "${DECISION[list]}")`)));
-      files.push([".codex/rules/agent-kit.rules", file(`${rules.join("\n")}\n`)]);
+      files.push([".codex/rules/agentproof-kit.rules", file(`${rules.join("\n")}\n`)]);
     }
 
     return { files: new Map(files), agentsMd: rulesSection(pieces), unsupported, warnings };

@@ -1,4 +1,4 @@
-// Shared config files: agent-kit owns some entries, the user owns the rest.
+// Shared config files: agentproof-kit owns some entries, the user owns the rest.
 // Each merger is pure: (current text, wanted entries, entries owned last time) -> new text and the problems it found.
 import { ParseError } from "./parse.ts";
 import type { JsonEntry, MergedFile } from "./types.ts";
@@ -85,7 +85,7 @@ function mergeJson(where: string, current: string | null, entries: readonly Json
     if (e.kind === "default") { if (p[last] === undefined) p[last] = e.value; return; }
     if (e.kind === "key") {
       if (p[last] !== undefined && !same(p[last], e.value)) {
-        if (!owned) throw new ParseError(`${where}: ${pointer(e.path)} already exists and agent-kit did not write it. Rename or remove your entry, or drop the piece from agents.json.`);
+        if (!owned) throw new ParseError(`${where}: ${pointer(e.path)} already exists and agentproof-kit did not write it. Rename or remove your entry, or drop the piece from agents.json.`);
         drift.push(`${pointer(e.path)} edited`);
       } else if (p[last] === undefined && current !== null && owned) drift.push(`${pointer(e.path)} missing`);
       p[last] = e.value;
@@ -118,7 +118,7 @@ function prune(root: Obj, path: readonly string[]) {
   }
 }
 
-// TOML: agent-kit owns whole tables such as [mcp_servers.github]. It edits only those blocks of lines,
+// TOML: agentproof-kit owns whole tables such as [mcp_servers.github]. It edits only those blocks of lines,
 // so the user's comments, ordering and formatting elsewhere stay byte for byte.
 const HEADER = /^\s*\[\[?\s*([^\[\]]+?)\s*\]\]?\s*(#.*)?$/;
 type Block = { name: string | null; lines: string[] };
@@ -153,7 +153,7 @@ function mergeToml(where: string, current: string | null, tables: ReadonlyMap<st
       if (last && body(last) !== "") last.lines = [body(last), ""];
       kept.push({ name, lines: [...want.split("\n"), ""] });
     } else if (body(b) !== want) {
-      if (!previous.includes(id)) throw new ParseError(`${where}: ${id} already exists and agent-kit did not write it. Rename or remove your table, or drop the piece from agents.json.`);
+      if (!previous.includes(id)) throw new ParseError(`${where}: ${id} already exists and agentproof-kit did not write it. Rename or remove your table, or drop the piece from agents.json.`);
       drift.push(`${id} edited`);
       b.lines = [...want.split("\n"), ...b.lines.slice(body(b).split("\n").length)];
     }

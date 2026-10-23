@@ -16,7 +16,7 @@
     },
     "hooks/block-force-push": {
       "version": "1.0.0",
-      "hash": "sha256-+6uAH6jqpdxoH7cGx82BDJQFVRe/cyR9KfNlJDYsWIo="
+      "hash": "sha256-y/UmnANPJ0LqhDuOxgtw7PUuHdXVYl7xat6o6jtgznQ="
     },
     "mcp/context7": {
       "version": "1.0.0",
@@ -57,14 +57,14 @@
     ".agents/skills/react-component/SKILL.md": "sha256-k3z7vUrPKen6VRSBZ0yAhTnQrUhVnkl1i3jAmzg+Hf4=",
     ".agents/skills/react-component/templates/Component.tsx": "sha256-bTgGTacbefKDRuNhCgNQgliOJypHCQD6EoBdCXmDWC0=",
     ".claude/agents/explorer.md": "sha256-c2eLasZ7vKggSeOEJVWU6Q7KA7V8SS1eDO2344y8jUw=",
-    ".claude/hooks/block-force-push.sh": "sha256-ro5a7vdHkYT7DRwP+fcO9RDlizJ65y0w/Od0F1Q9vLY=",
+    ".claude/hooks/block-force-push.sh": "sha256-w6VBIJoiicLyO7EWVeC7xUlkWPXykAX49vPgAnq3JzA=",
     ".claude/skills/code-review": "link:../../.agents/skills/code-review",
     ".claude/skills/react-component": "link:../../.agents/skills/react-component",
     ".codex/agents/explorer.toml": "sha256-10IyFU1KoWmddMivKGLdYAd/Tm7//NMQ9zMP8DoTAok=",
-    ".codex/hooks/block-force-push.sh": "sha256-ro5a7vdHkYT7DRwP+fcO9RDlizJ65y0w/Od0F1Q9vLY=",
-    ".codex/rules/agent-kit.rules": "sha256-2xWRmgH7n8lEpJkKjmPJmuUvwP8jnsNLd1xXUAhjtUA=",
+    ".codex/hooks/block-force-push.sh": "sha256-w6VBIJoiicLyO7EWVeC7xUlkWPXykAX49vPgAnq3JzA=",
+    ".codex/rules/agentproof-kit.rules": "sha256-2xWRmgH7n8lEpJkKjmPJmuUvwP8jnsNLd1xXUAhjtUA=",
     ".cursor/agents/explorer.md": "sha256-OBkYGIonhrPDCAx+1leDPXSWnLrS8PwwOzIs32j/+DE=",
-    ".cursor/hooks/block-force-push.sh": "sha256-ro5a7vdHkYT7DRwP+fcO9RDlizJ65y0w/Od0F1Q9vLY=",
+    ".cursor/hooks/block-force-push.sh": "sha256-w6VBIJoiicLyO7EWVeC7xUlkWPXykAX49vPgAnq3JzA=",
     ".cursor/rules/conventional-commits.mdc": "sha256-XgKyVKv+yrtkKXIm4riH9drz3hRH2TABeSsCuWfLZpc=",
     ".cursor/rules/react.mdc": "sha256-vGblk/J+4ovuw7xnqZpqPigb8TJryNvJtMRy5rqTlt8=",
     ".cursor/rules/typescript-strict.mdc": "sha256-Cko6JDeNk80+0shGWBMHQBUNS1Z4UeLio1oX0VJJOu8="

@@ -66,28 +66,28 @@ export type Lock = {
   readonly registry: { readonly source: string; readonly commit: string | null };
   readonly targets: readonly Target[];
   readonly pieces: Readonly<Record<string, { readonly version: string; readonly hash: string }>>;
-  /** Every file agent-kit writes whole, and its content hash, or `link:<target>` for a symlink, so stale ones can be removed. */
+  /** Every file agentproof-kit writes whole, and its content hash, or `link:<target>` for a symlink, so stale ones can be removed. */
   readonly files: Readonly<Record<string, string>>;
-  /** Shared files: the entries agent-kit wrote, so it can remove them later and leave the rest alone. */
+  /** Shared files: the entries agentproof-kit wrote, so it can remove them later and leave the rest alone. */
   readonly owned: Readonly<Record<string, readonly string[]>>;
 };
 
 /**
- * One entry agent-kit manages inside a shared JSON file.
+ * One entry agentproof-kit manages inside a shared JSON file.
  * key: owns the value at path. item: owns one element of the list at path. default: sets path if absent, never owns it.
  */
 export type JsonEntry = { readonly kind: "key" | "item" | "default"; readonly path: readonly string[]; readonly value: unknown };
 
-/** A shared file: agent-kit owns some entries, the user owns everything else. TOML tables map header name -> full table text. */
+/** A shared file: agentproof-kit owns some entries, the user owns everything else. TOML tables map header name -> full table text. */
 export type MergedFile =
   | { readonly kind: "json"; readonly entries: readonly JsonEntry[] }
   | { readonly kind: "toml"; readonly tables: ReadonlyMap<string, string> }
-  /** Plain text: agent-kit owns whole lines, such as `@AGENTS.md` in CLAUDE.md. */
+  /** Plain text: agentproof-kit owns whole lines, such as `@AGENTS.md` in CLAUDE.md. */
   | { readonly kind: "lines"; readonly lines: readonly string[] };
 
 export type GeneratedFile =
   | { readonly kind: "whole"; readonly content: string; readonly executable: boolean }
-  /** A relative symlink, stored as-is. agent-kit owns the link, not what it points to. */
+  /** A relative symlink, stored as-is. agentproof-kit owns the link, not what it points to. */
   | { readonly kind: "link"; readonly target: string }
   | MergedFile;
 

@@ -10,7 +10,7 @@
 
 - The lock is out of date, or the registry content differs from it.
 - A generated file, or an owned entry in a shared file, was edited or deleted.
-- A hand-written entry in a shared file has the name of an entry agent-kit needs.
+- A hand-written entry in a shared file has the name of an entry agentproof-kit needs.
 - A required environment variable is not set.
 
 `check` prints a warning and still exits 0 when a piece is installed with a known loss. An example is an `ask` permission that Cursor's `cli.json` has no list for. The adapter returns these in `warnings`.

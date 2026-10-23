@@ -1,12 +1,12 @@
 # CLI reference
 
-This page describes the agent-kit command line: its commands, options, JSON output, problem codes and exit codes. A script or an agent can rely on everything here. A change to any of it is a breaking change.
+This page describes the agentproof-kit command line: its commands, options, JSON output, problem codes and exit codes. A script or an agent can rely on everything here. A change to any of it is a breaking change.
 
 ## Commands
 
 | Command | Writes | What it does |
 | --- | --- | --- |
-| `init --registry <src> [--preset <id>]... [--target <t>]... [--no-skill]` | yes | Writes `agents.json`, then runs `update`. Adds `skills/agent-kit` when the registry has it. |
+| `init --registry <src> [--preset <id>]... [--target <t>]... [--no-skill]` | yes | Writes `agents.json`, then runs `update`. Adds `skills/agentproof-kit` when the registry has it. |
 | `add <type>/<id>...` | yes | Adds pieces to `agents.json`, then runs `update`. |
 | `remove <type>/<id>...` | yes | Removes pieces from `agents.json`, then runs `update`. |
 | `update` | yes | Re-resolves `agents.json`, rewrites `agents.lock` and the generated files. |
@@ -25,7 +25,7 @@ Every command takes these options:
 | `--dry-run` | Only for commands that write. Computes the changes and writes nothing. |
 | `--help`, `-h` | Prints help for the command and exits 0. |
 
-agent-kit never reads stdin and never prompts. It prints color only when stderr is a terminal and `NO_COLOR` is unset. It never prints color in `--json` output.
+agentproof-kit never reads stdin and never prompts. It prints color only when stderr is a terminal and `NO_COLOR` is unset. It never prints color in `--json` output.
 
 ## JSON result
 
@@ -55,7 +55,7 @@ With `--json`, every command prints one object with these keys:
     {
       "code": "unknown-piece",
       "message": "not in registry: rules/reakt (did you mean rules/react?)",
-      "fix": "agent-kit list"
+      "fix": "agentproof-kit list"
     }
   ],
   "warnings": []
@@ -68,20 +68,20 @@ With `--json`, every command prints one object with these keys:
 
 | Code | Cause | `fix` |
 | --- | --- | --- |
-| `usage` | Unknown command or option, a missing argument, or `--dry-run` on a command that does not write. | `agent-kit <command> --help` |
-| `manifest-missing` | No `agents.json`. | `agent-kit init --registry <src>` |
-| `manifest-exists` | `init` found an `agents.json`. | `agent-kit update` |
+| `usage` | Unknown command or option, a missing argument, or `--dry-run` on a command that does not write. | `agentproof-kit <command> --help` |
+| `manifest-missing` | No `agents.json`. | `agentproof-kit init --registry <src>` |
+| `manifest-exists` | `init` found an `agents.json`. | `agentproof-kit update` |
 | `invalid-config` | `agents.json`, `agents.lock` or a registry file is not valid. | `null` |
-| `invalid-piece-key` | An argument is not `<type>/<id>`. | `agent-kit list` |
-| `unknown-piece` | The registry has no such piece. The message suggests the closest key. | `agent-kit list` |
-| `not-installed` | `remove` named a piece that is not installed. | `agent-kit list` |
-| `unknown-preset` | The registry has no such preset. | `agent-kit list` |
+| `invalid-piece-key` | An argument is not `<type>/<id>`. | `agentproof-kit list` |
+| `unknown-piece` | The registry has no such piece. The message suggests the closest key. | `agentproof-kit list` |
+| `not-installed` | `remove` named a piece that is not installed. | `agentproof-kit list` |
+| `unknown-preset` | The registry has no such preset. | `agentproof-kit list` |
 | `registry-unavailable` | The registry path, clone or ref cannot be read. | `null` |
-| `lock-missing` | No `agents.lock`. | `agent-kit update` |
-| `lock-outdated` | `agents.json` changed since the last `update`. | `agent-kit update` |
-| `registry-changed` | Registry content at the locked commit no longer matches a hash in the lock. | `agent-kit update` |
-| `drift` | A generated file, an owned entry or the `AGENTS.md` section was edited or is missing. | `agent-kit sync` |
-| `conflict` | A file or entry agent-kit did not write already uses a name it wants. | `null` |
+| `lock-missing` | No `agents.lock`. | `agentproof-kit update` |
+| `lock-outdated` | `agents.json` changed since the last `update`. | `agentproof-kit update` |
+| `registry-changed` | Registry content at the locked commit no longer matches a hash in the lock. | `agentproof-kit update` |
+| `drift` | A generated file, an owned entry or the `AGENTS.md` section was edited or is missing. | `agentproof-kit sync` |
+| `conflict` | A file or entry agentproof-kit did not write already uses a name it wants. | `null` |
 | `env-missing` | An MCP server needs an environment variable that is not set. | `export NAME=<value>` |
 | `internal` | Anything else. The message never includes a stack trace. | `null` |
 
@@ -99,5 +99,5 @@ Without `--json`, results go to stdout and warnings and problems go to stderr:
 
 ```text
 error[drift]: AGENTS.md managed section
-  fix: agent-kit sync
+  fix: agentproof-kit sync
 ```

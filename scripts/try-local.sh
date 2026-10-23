@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Try agent-kit on your own machine: unit tests, the no-login smoke test, then one cheap model
+# Try agentproof-kit on your own machine: unit tests, the no-login smoke test, then one cheap model
 # call per agent CLI you are logged in to, checking it names the example skills.
-# Usage: bash scripts/try-local.sh [path/to/unpacked/agent-kit]
+# Usage: bash scripts/try-local.sh [path/to/unpacked/agentproof-kit]
 set -uo pipefail
 ROOT=$(cd "${1:-$(dirname "$0")/..}" && pwd -P)
 SKILLS=(code-review react-component)
@@ -10,16 +10,16 @@ command -v timeout >/dev/null || timeout() { local s=$1; shift; perl -e 'alarm s
 
 major=$(node -p 'process.versions.node.split(".")[0]' 2>/dev/null || echo 0)
 [ "$major" -ge 24 ] || { echo "need Node >= 24 (found $(node --version 2>/dev/null || echo none))"; exit 1; }
-echo "== node $(node --version), agent-kit at $ROOT"
+echo "== node $(node --version), agentproof-kit at $ROOT"
 
-(cd "$ROOT" && npm test >/tmp/agent-kit-test.log 2>&1) && echo "  ok: npm test ($(grep -E '^ℹ pass' /tmp/agent-kit-test.log))" || { echo "  FAIL: npm test, see /tmp/agent-kit-test.log"; exit 1; }
+(cd "$ROOT" && npm test >/tmp/agentproof-kit-test.log 2>&1) && echo "  ok: npm test ($(grep -E '^ℹ pass' /tmp/agentproof-kit-test.log))" || { echo "  FAIL: npm test, see /tmp/agentproof-kit-test.log"; exit 1; }
 (cd "$ROOT" && npm run --silent smoke) || { echo "  FAIL: npm run smoke"; exit 1; }
 
 TMP=$(cd "$(mktemp -d)" && pwd -P)
 trap 'rm -rf "$TMP"' EXIT
 cp -r "$ROOT/examples/registry" "$TMP/registry"
 mkdir "$TMP/project" && cd "$TMP/project" && git init -q
-node "$ROOT/src/cli.ts" init --registry ../registry --preset frontend >/dev/null || { echo "FAIL: agent-kit init"; exit 1; }
+node "$ROOT/src/cli.ts" init --registry ../registry --preset frontend >/dev/null || { echo "FAIL: agentproof-kit init"; exit 1; }
 echo "== model calls in $TMP/project (one short prompt per logged-in CLI)"
 
 fails=0

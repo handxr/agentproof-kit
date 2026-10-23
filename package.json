@@ -1,14 +1,20 @@
 {
-  "name": "agent-kit",
+  "name": "agentproof-kit",
   "version": "0.0.0",
   "private": true,
   "description": "Reference CLI that installs skills, MCP servers, rules, commands, subagents, hooks and permissions from a registry into Cursor, Claude Code and Codex.",
   "license": "MIT",
   "type": "module",
-  "engines": { "node": ">=24" },
-  "bin": { "agent-kit": "./src/cli.ts" },
+  "engines": {
+    "node": ">=24"
+  },
+  "bin": {
+    "agentproof-kit": "./dist/cli.js"
+  },
   "scripts": {
-    "agent-kit": "node src/cli.ts",
+    "agentproof-kit": "node src/cli.ts",
+    "build": "tsc -p tsconfig.build.json",
+    "prepack": "npm run build",
     "test": "node --test test/*.test.ts",
     "typecheck": "tsc --noEmit",
     "smoke": "bash scripts/smoke-agents.sh"
@@ -16,5 +22,8 @@
   "devDependencies": {
     "@types/node": "^24.0.0",
     "typescript": "^5.9.0"
-  }
+  },
+  "files": [
+    "dist"
+  ]
 }

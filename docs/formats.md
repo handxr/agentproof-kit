@@ -1,6 +1,6 @@
 # Target formats
 
-This page lists the file each adapter writes and the doc that defines the format. Each source was read on 2026-10-23. A piece type marked unsupported has no verified project-level format for that target, and `agent-kit check` fails if a project installs it there.
+This page lists the file each adapter writes and the doc that defines the format. Each source was read on 2026-10-23. A piece type marked unsupported has no verified project-level format for that target, and `agentproof-kit check` fails if a project installs it there.
 
 ## Cursor
 
@@ -34,7 +34,7 @@ Adapter: `src/adapters/claude.ts`.
 | hooks | `.claude/settings.json` `hooks.PreToolUse[].{matcher, hooks[{type: "command", command}]}`. Scripts use `"$CLAUDE_PROJECT_DIR"`. | https://code.claude.com/docs/en/hooks |
 | permissions | `.claude/settings.json` `permissions.{allow, ask, deny}` with `Bash(npm run *)` rules | https://code.claude.com/docs/en/permissions |
 
-Claude reads `AGENTS.md` only when the project has no `CLAUDE.md` (v2.1.277 and later), and a `CLAUDE.md` can import it with `@AGENTS.md` (https://code.claude.com/docs/en/memory). agent-kit owns that one line in `CLAUDE.md`: it creates the file if absent, appends the line to a hand-written file that lacks it, and never touches the other lines. The import works whether or not a `CLAUDE.md` existed, and on versions older than 2.1.277.
+Claude reads `AGENTS.md` only when the project has no `CLAUDE.md` (v2.1.277 and later), and a `CLAUDE.md` can import it with `@AGENTS.md` (https://code.claude.com/docs/en/memory). agentproof-kit owns that one line in `CLAUDE.md`: it creates the file if absent, appends the line to a hand-written file that lacks it, and never touches the other lines. The import works whether or not a `CLAUDE.md` existed, and on versions older than 2.1.277.
 
 A `readonly` agent becomes `tools: Read, Grep, Glob`.
 
@@ -49,7 +49,7 @@ Adapter: `src/adapters/codex.ts`.
 | rules | The `AGENTS.md` managed section | https://developers.openai.com/codex/guides/agents-md |
 | agents | `.codex/agents/<id>.toml` with `name`, `description`, `developer_instructions`, and optional `model` | https://developers.openai.com/codex/subagents |
 | hooks | `.codex/hooks.json`, same shape as Claude's `hooks` object | https://developers.openai.com/codex/hooks |
-| permissions | `.codex/rules/agent-kit.rules` with `prefix_rule(pattern = [...], decision = "allow" \| "prompt" \| "forbidden")` | https://developers.openai.com/codex/rules |
+| permissions | `.codex/rules/agentproof-kit.rules` with `prefix_rule(pattern = [...], decision = "allow" \| "prompt" \| "forbidden")` | https://developers.openai.com/codex/rules |
 | commands | Unsupported. Custom prompts are deprecated in favor of skills and live in the user's home directory. | https://developers.openai.com/codex/custom-prompts |
 
 Codex loads `.codex/config.toml`, `.codex/hooks.json`, and `.codex/rules/` only when the user trusts the project (https://developers.openai.com/codex/config-basic). Codex also asks the user to review non-managed hooks before they run.
@@ -71,7 +71,7 @@ Custom agents inherit the parent session's sandbox. A `readonly` agent gets a wa
 
 Cursor reads `.agents/skills/`, `.claude/skills/` and `.codex/skills/` (https://cursor.com/docs/skills). Codex scans `.agents/skills` from the working directory up to the repo root (https://developers.openai.com/codex/skills). pi, Copilot in VS Code, Gemini CLI, OpenCode and Windsurf also read `.agents/skills`. Claude Code reads only `.claude/skills/` and says symlinked skill folders work (https://code.claude.com/docs/en/skills).
 
-agent-kit writes every skill once, to `.agents/skills/<id>/`. When `claude` is a target it adds `.claude/skills/<id>`, a relative symlink to `../../.agents/skills/<id>`, one per skill, so hand-written skills can sit next to them in `.claude/skills/`.
+agentproof-kit writes every skill once, to `.agents/skills/<id>/`. When `claude` is a target it adds `.claude/skills/<id>`, a relative symlink to `../../.agents/skills/<id>`, one per skill, so hand-written skills can sit next to them in `.claude/skills/`.
 
 Unconfirmed: Cursor reads both directories, so with `claude` targeted it may list each skill twice through the symlink. The Cursor docs do not say whether it merges skills with the same name or resolves symlinks.
 

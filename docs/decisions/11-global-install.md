@@ -12,11 +12,11 @@ Some pieces belong to a person, not a project: a review skill, a GitHub MCP serv
 | commands | `~/.claude/commands` ([claude-directory](https://code.claude.com/docs/en/claude-directory)) | unsupported (as in projects) | unsupported: no personal folder documented |
 | agents | `~/.claude/agents` ([sub-agents](https://code.claude.com/docs/en/sub-agents)) | `~/.codex/agents` ([subagents](https://developers.openai.com/codex/subagents)) | `~/.cursor/agents` ([subagents](https://cursor.com/docs/context/subagents)) |
 | hooks | `~/.claude/settings.json`, script `"$HOME"/.claude/hooks/x` ([hooks](https://code.claude.com/docs/en/hooks)) | `~/.codex/hooks.json`, script `$HOME/.codex/hooks/x` ([hooks](https://developers.openai.com/codex/hooks)) | `~/.cursor/hooks.json`, script `./hooks/x`, run from `~/.cursor` ([hooks](https://cursor.com/docs/agent/hooks)) |
-| permissions | `~/.claude/settings.json` | `~/.codex/rules/agent-kit.rules` ([rules](https://developers.openai.com/codex/rules)) | `~/.cursor/cli-config.json` ([permissions](https://cursor.com/docs/cli/reference/permissions)) |
+| permissions | `~/.claude/settings.json` | `~/.codex/rules/agentproof-kit.rules` ([rules](https://developers.openai.com/codex/rules)) | `~/.cursor/cli-config.json` ([permissions](https://cursor.com/docs/cli/reference/permissions)) |
 
 ## Decision
 
-`--global` on every command swaps the project directory for a `Place` in `src/project.ts`: `{ scope: "user", config, root }`. `agents.json` and `agents.lock` live in `config`, which is `$XDG_CONFIG_HOME/agent-kit` or `~/.config/agent-kit`. Files go under `root`, which is `$HOME`. A plain directory string still means the project place, so nothing else changed.
+`--global` on every command swaps the project directory for a `Place` in `src/project.ts`: `{ scope: "user", config, root }`. `agents.json` and `agents.lock` live in `config`, which is `$XDG_CONFIG_HOME/agentproof-kit` or `~/.config/agentproof-kit`. Files go under `root`, which is `$HOME`. A plain directory string still means the project place, so nothing else changed.
 
 The adapters stay pure. `render(pieces, scope)` returns user paths when `scope` is `"user"`, and lists a piece type with no documented user location as unsupported, so `check --global` warns about it, as it does for projects ([decision 5](05-check-errors-vs-warnings.md)). Shared files use the same owned-entries merge as in projects ([decision 7](07-merge-owned-keys.md)), so your other entries in `~/.claude.json`, `~/.claude/settings.json` and the rest survive. The managed section goes into each agent's own instruction file instead of one `AGENTS.md`, so there is no `@AGENTS.md` import at user scope.
 
@@ -36,4 +36,4 @@ The adapters stay pure. `render(pieces, scope)` returns user paths when `scope` 
 ## Known limits
 
 - Cursor also loads `~/.claude/skills`, so with both `claude` and `cursor` targeted it may list each skill twice, as in projects ([decision 8](08-one-skill-copy.md)).
-- `CODEX_HOME` and `CLAUDE_CONFIG_DIR` are not read. agent-kit always writes to `~/.codex` and `~/.claude`.
+- `CODEX_HOME` and `CLAUDE_CONFIG_DIR` are not read. agentproof-kit always writes to `~/.codex` and `~/.claude`.
