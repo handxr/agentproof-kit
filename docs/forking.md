@@ -39,3 +39,19 @@ Commit `agents.json`, `agents.lock`, `AGENTS.md`, and the generated files. Run `
 ## Know what each decision protects
 
 [docs/decisions/](decisions/README.md) has one file per design decision. Each one says what you can change in your fork and what breaks if you change the decision itself. Read the matching file before you change the lockfile, `check`, an adapter, or the way agent-kit writes shared files.
+
+## Rename the CLI
+
+`agent-kit` is a working name. The name that users see is in two places:
+
+- `package.json`: `name`, the `bin` key, and the `agent-kit` script.
+- `README.md` and the docs.
+
+The name also appears in places that existing projects depend on. Change them together, before any project uses your fork, or old projects stop matching:
+
+- The `AGENTS.md` markers `<!-- agent-kit:start -->` and `<!-- agent-kit:end -->` (`START` and `END` in `src/project.ts`). A project generated with the old markers gets a second section.
+- `.codex/rules/agent-kit.rules` in `src/adapters/codex.ts`. The old file stays until `update` deletes it as stale.
+- The cache directory `~/.cache/agent-kit` and the `AGENT_KIT_CACHE` variable in `src/registry.ts`.
+- Error messages and test expectations that say "agent-kit did not write it".
+
+A plain replace works: `rg -l agent-kit | xargs sed -i 's/agent-kit/your-name/g'` (and `AGENT_KIT_` for the variable), then `npm test` and `npm run smoke`, then regenerate `examples/project` with `update`.

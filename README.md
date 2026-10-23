@@ -80,7 +80,21 @@ presets/<id>.json             {"extends": [...], "skills": [...], "mcp": [...], 
 
 MCP files list environment variable names, never values. agent-kit writes each target's own reference syntax, such as `${env:NAME}` for Cursor and `${NAME}` for Claude Code.
 
-[`examples/registry`](examples/registry) has a `base` preset and a `frontend` preset that extends it.
+## Presets
+
+A preset is a named list of pieces. A preset can `extend` others, so a team keeps one `base` and builds on it:
+
+```jsonc
+// presets/base.json
+{ "skills": ["code-review"], "mcp": ["github"], "rules": ["conventional-commits"], "hooks": ["block-force-push"] }
+
+// presets/frontend.json
+{ "extends": ["base"], "skills": ["react-component"], "mcp": ["context7"], "rules": ["react"] }
+```
+
+A project with `"presets": ["frontend"]` gets both skills, both MCP servers, and every rule and hook from both presets. A piece listed twice is installed once. agent-kit rejects a preset that extends itself, directly or through another preset.
+
+[`examples/registry`](examples/registry) has these two presets with every piece they name.
 
 ## What each target supports
 
@@ -119,4 +133,19 @@ Parsing happens once, at the edge. `resolve.ts` and the adapters are pure functi
 ```sh
 npm test
 npm run typecheck
+npm run smoke
 ```
+
+`npm run smoke` generates the example project and asks each installed agent CLI (`claude`, `codex`, `cursor-agent`) which MCP servers and settings it loaded. CLIs that are not installed are skipped, so CI runs only the generate step. [`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs all three on every pull request.
+
+## Known limitations
+
+[Decision 10](docs/decisions/10-known-limitations.md) lists the edge cases agent-kit accepts: shared JSON files are reformatted when an owned entry changes, v1 lockfiles are rejected, an identical hand-written entry is adopted, and dotted TOML keys outside a table are not seen.
+
+## Name
+
+`agent-kit` is a working name. [Rename it](docs/forking.md#rename-the-cli) in your fork.
+
+## License
+
+[MIT](LICENSE)
