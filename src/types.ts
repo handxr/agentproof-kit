@@ -62,15 +62,28 @@ export type Registry = {
 
 /** agents.lock */
 export type Lock = {
-  readonly lockfileVersion: 1;
+  readonly lockfileVersion: 2;
   readonly registry: { readonly source: string; readonly commit: string | null };
   readonly targets: readonly Target[];
   readonly pieces: Readonly<Record<string, { readonly version: string; readonly hash: string }>>;
-  /** Every generated file and its content hash, so stale files can be removed. */
+  /** Every file agent-kit writes whole, and its content hash, so stale files can be removed. */
   readonly files: Readonly<Record<string, string>>;
+  /** Shared files: the entries agent-kit wrote, so it can remove them later and leave the rest alone. */
+  readonly owned: Readonly<Record<string, readonly string[]>>;
 };
 
-export type GeneratedFile = { readonly content: string; readonly executable: boolean };
+/**
+ * One entry agent-kit manages inside a shared JSON file.
+ * key: owns the value at path. item: owns one element of the list at path. default: sets path if absent, never owns it.
+ */
+export type JsonEntry = { readonly kind: "key" | "item" | "default"; readonly path: readonly string[]; readonly value: unknown };
+
+/** A shared file: agent-kit owns some entries, the user owns everything else. TOML tables map header name -> full table text. */
+export type MergedFile =
+  | { readonly kind: "json"; readonly entries: readonly JsonEntry[] }
+  | { readonly kind: "toml"; readonly tables: ReadonlyMap<string, string> };
+
+export type GeneratedFile = { readonly kind: "whole"; readonly content: string; readonly executable: boolean } | MergedFile;
 
 export type RenderResult = {
   readonly files: ReadonlyMap<string, GeneratedFile>;

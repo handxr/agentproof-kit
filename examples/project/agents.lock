@@ -1,5 +1,5 @@
 {
-  "lockfileVersion": 1,
+  "lockfileVersion": 2,
   "registry": {
     "source": "../registry",
     "commit": null
@@ -61,23 +61,51 @@
     ".claude/rules/conventional-commits.md": "sha256-c3NzU5I3NAHgJvg866PnyGdsPZuCto0EDnC8gLCMCWU=",
     ".claude/rules/react.md": "sha256-/ZxMT2QxIe2SVli3hn9o2IoJJyiZg06u7TXLgM20OtY=",
     ".claude/rules/typescript-strict.md": "sha256-Lrgn9rtMTzJdnBY1WzRwOZO6aPdbHp0k18161APGtT8=",
-    ".claude/settings.json": "sha256-XdPafdX6hvuoBU0v/Ne38PSmeNsYcurdFv2VFjbdChE=",
     ".claude/skills/code-review/checklist.md": "sha256-pEApU/9RIOYkgSvw6Bssz5pX0CilEQFjLhrNgEU9Cbs=",
     ".claude/skills/code-review/SKILL.md": "sha256-d4QLWQ5NXiuuh7OU4IjkfHYKro2NpyqO6VOrgGMTMww=",
     ".claude/skills/react-component/SKILL.md": "sha256-k3z7vUrPKen6VRSBZ0yAhTnQrUhVnkl1i3jAmzg+Hf4=",
     ".claude/skills/react-component/templates/Component.tsx": "sha256-bTgGTacbefKDRuNhCgNQgliOJypHCQD6EoBdCXmDWC0=",
     ".codex/agents/explorer.toml": "sha256-10IyFU1KoWmddMivKGLdYAd/Tm7//NMQ9zMP8DoTAok=",
-    ".codex/config.toml": "sha256-7ABVciog7GS+GiapGqVRG7Q3U+QZSdtodeLZ+Hvdjh4=",
-    ".codex/hooks.json": "sha256-FX+ufvjuDx0WznsA/uroSIUcmvX7roA6VgyL/lUgxIQ=",
     ".codex/hooks/block-force-push.sh": "sha256-ro5a7vdHkYT7DRwP+fcO9RDlizJ65y0w/Od0F1Q9vLY=",
     ".codex/rules/agent-kit.rules": "sha256-2xWRmgH7n8lEpJkKjmPJmuUvwP8jnsNLd1xXUAhjtUA=",
     ".cursor/agents/explorer.md": "sha256-OBkYGIonhrPDCAx+1leDPXSWnLrS8PwwOzIs32j/+DE=",
-    ".cursor/hooks.json": "sha256-tjsr4A4ddxtVl13e+au7OvfIasT1XC1USk7c6si12Ds=",
     ".cursor/hooks/block-force-push.sh": "sha256-ro5a7vdHkYT7DRwP+fcO9RDlizJ65y0w/Od0F1Q9vLY=",
-    ".cursor/mcp.json": "sha256-8Jhm6V7DYpaCEEhY8vBvKndaK6abUR3kfz7b5XP4zEk=",
     ".cursor/rules/conventional-commits.mdc": "sha256-XgKyVKv+yrtkKXIm4riH9drz3hRH2TABeSsCuWfLZpc=",
     ".cursor/rules/react.mdc": "sha256-vGblk/J+4ovuw7xnqZpqPigb8TJryNvJtMRy5rqTlt8=",
-    ".cursor/rules/typescript-strict.mdc": "sha256-Cko6JDeNk80+0shGWBMHQBUNS1Z4UeLio1oX0VJJOu8=",
-    ".mcp.json": "sha256-AUcsqxQdvnMyVXxj/Ms4HApzQpsSVDmItQ6q05TDONs="
+    ".cursor/rules/typescript-strict.mdc": "sha256-Cko6JDeNk80+0shGWBMHQBUNS1Z4UeLio1oX0VJJOu8="
+  },
+  "owned": {
+    ".claude/settings.json": [
+      "/hooks/PreToolUse[]{\"matcher\":\"Bash\",\"hooks\":[{\"type\":\"command\",\"command\":\"\\\"$CLAUDE_PROJECT_DIR\\\"/.claude/hooks/block-force-push.sh\"}]}",
+      "/permissions/allow[]\"Bash(git status)\"",
+      "/permissions/allow[]\"Bash(git status *)\"",
+      "/permissions/allow[]\"Bash(git diff)\"",
+      "/permissions/allow[]\"Bash(git diff *)\"",
+      "/permissions/allow[]\"Bash(git log)\"",
+      "/permissions/allow[]\"Bash(git log *)\"",
+      "/permissions/ask[]\"Bash(git push)\"",
+      "/permissions/ask[]\"Bash(git push *)\"",
+      "/permissions/deny[]\"Bash(git push --force)\"",
+      "/permissions/deny[]\"Bash(git push --force *)\""
+    ],
+    ".codex/config.toml": [
+      "[mcp_servers.context7]",
+      "[mcp_servers.github]"
+    ],
+    ".codex/hooks.json": [
+      "/hooks/PreToolUse[]{\"matcher\":\"Bash\",\"hooks\":[{\"type\":\"command\",\"command\":\"\\\"$(git rev-parse --show-toplevel)/.codex/hooks/block-force-push.sh\\\"\"}]}"
+    ],
+    ".cursor/hooks.json": [
+      "?/version",
+      "/hooks/beforeShellExecution[]{\"command\":\".cursor/hooks/block-force-push.sh\"}"
+    ],
+    ".cursor/mcp.json": [
+      "/mcpServers/context7",
+      "/mcpServers/github"
+    ],
+    ".mcp.json": [
+      "/mcpServers/context7",
+      "/mcpServers/github"
+    ]
   }
 }

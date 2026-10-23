@@ -1,4 +1,4 @@
-import type { GeneratedFile, Piece, PieceBody, PieceType } from "../types.ts";
+import type { GeneratedFile, JsonEntry, Piece, PieceBody, PieceType } from "../types.ts";
 
 export type Body<T extends PieceType> = Extract<PieceBody, { type: T }>;
 
@@ -6,8 +6,10 @@ export function ofType<T extends PieceType>(pieces: readonly Piece[], type: T): 
   return pieces.filter((p): p is Piece & { body: Body<T> } => p.body.type === type);
 }
 
-export const file = (content: string, executable = false): GeneratedFile => ({ content, executable });
-export const json = (value: unknown): GeneratedFile => file(`${JSON.stringify(value, null, 2)}\n`);
+export const file = (content: string, executable = false): GeneratedFile => ({ kind: "whole", content, executable });
+export const entries = (list: readonly JsonEntry[]): GeneratedFile => ({ kind: "json", entries: list });
+export const key = (path: readonly string[], value: unknown): JsonEntry => ({ kind: "key", path, value });
+export const item = (path: readonly string[], value: unknown): JsonEntry => ({ kind: "item", path, value });
 
 /** Skills share one layout everywhere: <dir>/<id>/SKILL.md plus supporting files. */
 export function skillFiles(pieces: readonly Piece[], dir: string): Array<[string, GeneratedFile]> {

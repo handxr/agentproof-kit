@@ -1,7 +1,7 @@
 // Formats: docs/formats.md#cursor
 import { renderFrontmatter } from "../parse.ts";
 import type { Adapter, GeneratedFile } from "../types.ts";
-import { file, json, ofType, plainMarkdown, skillFiles, unsupportedTypes } from "./shared.ts";
+import { entries, file, item, key, ofType, plainMarkdown, skillFiles, unsupportedTypes } from "./shared.ts";
 
 const supports = new Set(["skills", "mcp", "rules", "commands", "agents", "hooks", "permissions"] as const);
 const EVENTS = { preShell: "beforeShellExecution", postEdit: "afterFileEdit" } as const;
@@ -16,12 +16,12 @@ export const cursor: Adapter = {
 
     const mcp = ofType(pieces, "mcp");
     if (mcp.length) {
-      const servers = Object.fromEntries(mcp.map(({ id, body: { server: s } }) => [id,
+      const servers = mcp.map(({ id, body: { server: s } }) => key(["mcpServers", id],
         s.kind === "stdio"
           ? { command: s.command, args: s.args, ...(s.env.length ? { env: Object.fromEntries(s.env.map((n) => [n, `\${env:${n}}`])) } : {}) }
           : { url: s.url, ...(s.bearerTokenEnv ? { headers: { Authorization: `Bearer \${env:${s.bearerTokenEnv}}` } } : {}) },
-      ]));
-      files.push([".cursor/mcp.json", json({ mcpServers: servers })]);
+      ));
+      files.push([".cursor/mcp.json", entries(servers)]);
     }
 
     for (const { id, body: r } of ofType(pieces, "rules")) {
@@ -33,12 +33,11 @@ export const cursor: Adapter = {
 
     const hooks = ofType(pieces, "hooks");
     if (hooks.length) {
-      const byEvent: Record<string, Array<{ command: string }>> = {};
-      for (const { body: h } of hooks) {
-        (byEvent[EVENTS[h.event]] ??= []).push({ command: `.cursor/hooks/${h.scriptName}` });
-        files.push([`.cursor/hooks/${h.scriptName}`, file(h.script, true)]);
-      }
-      files.push([".cursor/hooks.json", json({ version: 1, hooks: byEvent })]);
+      for (const { body: h } of hooks) files.push([`.cursor/hooks/${h.scriptName}`, file(h.script, true)]);
+      files.push([".cursor/hooks.json", entries([
+        { kind: "default", path: ["version"], value: 1 },
+        ...hooks.map(({ body: h }) => item(["hooks", EVENTS[h.event]], { command: `.cursor/hooks/${h.scriptName}` })),
+      ])]);
     }
 
     // CLI permissions take Shell(<commandBase>). Only single-word commands map without guessing at argument syntax.
@@ -51,7 +50,8 @@ export const cursor: Adapter = {
         }
         for (const cmd of p.ask) warnings.push(`cursor: ${key} ask "${cmd}" (no ask list in .cursor/cli.json)`);
       }
-      if (allow.length || deny.length) files.push([".cursor/cli.json", json({ permissions: { allow, deny } })]);
+      const rules = [...allow.map((r) => item(["permissions", "allow"], r)), ...deny.map((r) => item(["permissions", "deny"], r))];
+      if (rules.length) files.push([".cursor/cli.json", entries(rules)]);
     }
     return { files: new Map(files), agentsMd: "", unsupported, warnings };
   },

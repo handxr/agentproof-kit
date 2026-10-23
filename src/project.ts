@@ -3,10 +3,11 @@ import { createHash } from "node:crypto";
 import { chmodSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { ADAPTERS } from "./adapters/index.ts";
+import { emptyLike, merge, ownedIds } from "./merge.ts";
 import { ParseError, parseLock, parseManifest, parsePieceKey } from "./parse.ts";
 import { loadPiece, loadRegistry } from "./registry.ts";
 import { resolvePieces } from "./resolve.ts";
-import type { GeneratedFile, Lock, Manifest, Piece, Registry, Target } from "./types.ts";
+import type { GeneratedFile, Lock, MergedFile, Manifest, Piece, Registry, Target } from "./types.ts";
 
 export const MANIFEST = "agents.json";
 export const LOCK = "agents.lock";
@@ -31,7 +32,7 @@ export function render(pieces: readonly Piece[], targets: readonly Target[]): Re
     const out = ADAPTERS[target].render(pieces);
     for (const [path, f] of out.files) {
       const prev = files.get(path);
-      if (prev && prev.content !== f.content) throw new ParseError(`${path}: targets disagree on content`);
+      if (prev && JSON.stringify(prev, mapJson) !== JSON.stringify(f, mapJson)) throw new ParseError(`${path}: targets disagree on content`);
       files.set(path, f);
     }
     if (out.agentsMd) sections.add(out.agentsMd);
@@ -43,13 +44,18 @@ export function render(pieces: readonly Piece[], targets: readonly Target[]): Re
   return { files, agentsMd, unsupported, warnings };
 }
 
+const mapJson = (_k: string, v: unknown) => (v instanceof Map ? [...v] : v);
+const isMerged = (f: GeneratedFile): f is MergedFile => f.kind !== "whole";
+const sorted = <T>(entries: Iterable<[string, T]>) => [...entries].sort(([a], [b]) => a.localeCompare(b));
+
 export function lockFor(reg: Registry, targets: readonly Target[], pieces: readonly Piece[], r: Rendered): Lock {
   return {
-    lockfileVersion: 1,
+    lockfileVersion: 2,
     registry: { source: reg.source, commit: reg.commit },
     targets,
     pieces: Object.fromEntries(pieces.map((p) => [p.key, { version: p.version, hash: p.hash }])),
-    files: Object.fromEntries([...r.files].sort(([a], [b]) => a.localeCompare(b)).map(([path, f]) => [path, sha(f.content)])),
+    files: Object.fromEntries(sorted(r.files).flatMap(([path, f]) => (f.kind === "whole" ? [[path, sha(f.content)]] : []))),
+    owned: Object.fromEntries(sorted(r.files).flatMap(([path, f]) => (isMerged(f) ? [[path, ownedIds(f)]] : []))),
   };
 }
 
@@ -60,6 +66,18 @@ export function mergeAgentsMd(existing: string, section: string): string {
   const i = existing.indexOf(START), j = existing.indexOf(END);
   if (i >= 0 && j > i) return existing.slice(0, i) + block + existing.slice(j + END.length);
   return existing ? `${existing.trimEnd()}\n\n${block}\n` : `${block}\n`;
+}
+
+const readText = (dir: string, path: string) => (existsSync(join(dir, path)) ? readFileSync(join(dir, path), "utf8") : null);
+
+/** Every shared file this render or the previous lock touches, merged with what is on disk now. */
+function merges(dir: string, r: Rendered, previous: Lock | null) {
+  const paths = new Set([...Object.keys(previous?.owned ?? {}), ...[...r.files].filter(([, f]) => isMerged(f)).map(([p]) => p)]);
+  return [...paths].map((path) => {
+    const f = r.files.get(path);
+    const current = readText(dir, path);
+    return { path, current, ...merge(path, current, f && isMerged(f) ? f : emptyLike(path), previous?.owned[path] ?? []) };
+  });
 }
 
 /** Write only what differs, atomically. Returns the paths that changed. */
@@ -79,13 +97,19 @@ function writeIfChanged(dir: string, path: string, content: string, executable =
 /** Derive the whole project state from (lock, rendered). Safe to run any number of times. */
 export function apply(dir: string, lock: Lock, r: Rendered, previous: Lock | null): string[] {
   const changed: string[] = [];
+  // Merge first: a clash with a hand-written entry throws before anything is written.
+  const merged = merges(dir, r, previous);
   for (const path of Object.keys(previous?.files ?? {})) {
     if (!r.files.has(path) && existsSync(join(dir, path))) { rmSync(join(dir, path)); changed.push(`- ${path}`); }
   }
-  for (const [path, f] of r.files) if (writeIfChanged(dir, path, f.content, f.executable)) changed.push(path);
+  for (const [path, f] of r.files) if (f.kind === "whole" && writeIfChanged(dir, path, f.content, f.executable)) changed.push(path);
+  for (const m of merged) {
+    if (m.content === null) { if (m.current !== null) { rmSync(join(dir, m.path)); changed.push(`- ${m.path}`); } }
+    else if (writeIfChanged(dir, m.path, m.content)) changed.push(m.path);
+  }
   const agentsPath = join(dir, "AGENTS.md");
-  const merged = mergeAgentsMd(existsSync(agentsPath) ? readFileSync(agentsPath, "utf8") : "", r.agentsMd);
-  if (writeIfChanged(dir, "AGENTS.md", merged)) changed.push("AGENTS.md");
+  const agentsMd = mergeAgentsMd(existsSync(agentsPath) ? readFileSync(agentsPath, "utf8") : "", r.agentsMd);
+  if (writeIfChanged(dir, "AGENTS.md", agentsMd)) changed.push("AGENTS.md");
   if (writeIfChanged(dir, LOCK, lockText(lock))) changed.push(LOCK);
   return changed;
 }
@@ -138,12 +162,18 @@ export function check(dir: string, env: NodeJS.ProcessEnv = process.env): CheckR
   if (wanted.join() !== locked.join()) problems.push(`lock: pieces out of date (agents.json wants ${wanted.length}, lock has ${locked.length}; run update)`);
   if (manifest.targets.join() !== lock.targets.join()) problems.push("lock: targets out of date (run update)");
 
-  // Drift: generated files must match what the lock renders.
+  // Drift: whole files must match what the lock renders. In shared files only the owned entries count.
   const r = render(pieces, lock.targets);
   for (const [path, f] of r.files) {
-    const abs = join(dir, path);
-    if (!existsSync(abs)) problems.push(`drift: ${path} missing`);
-    else if (readFileSync(abs, "utf8") !== f.content) problems.push(`drift: ${path} edited`);
+    const current = readText(dir, path);
+    if (current === null) problems.push(`drift: ${path} missing`);
+    else if (f.kind === "whole" && current !== f.content) problems.push(`drift: ${path} edited`);
+  }
+  try {
+    for (const m of merges(dir, r, lock)) problems.push(...m.drift.map((d) => `drift: ${m.path} ${d}`));
+  } catch (e) {
+    if (!(e instanceof ParseError)) throw e;
+    problems.push(`conflict: ${e.message}`);
   }
   const agents = existsSync(join(dir, "AGENTS.md")) ? readFileSync(join(dir, "AGENTS.md"), "utf8") : "";
   if (mergeAgentsMd(agents, r.agentsMd) !== agents) problems.push("drift: AGENTS.md managed section");

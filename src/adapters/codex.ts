@@ -1,6 +1,6 @@
 // Formats: docs/formats.md#codex
 import type { Adapter, GeneratedFile } from "../types.ts";
-import { file, json, ofType, rulesSection, skillFiles, unsupportedTypes } from "./shared.ts";
+import { entries, file, item, ofType, rulesSection, skillFiles, unsupportedTypes } from "./shared.ts";
 
 // Custom prompts (commands) are deprecated in Codex in favour of skills, so commands stay unsupported.
 const supports = new Set(["skills", "mcp", "rules", "agents", "hooks", "permissions"] as const);
@@ -17,13 +17,13 @@ export const codex: Adapter = {
 
     const mcp = ofType(pieces, "mcp");
     if (mcp.length) {
-      const tables = mcp.map(({ id, body: { server: s } }) =>
+      const tables = new Map(mcp.map(({ id, body: { server: s } }) => [`mcp_servers.${id}`,
         [`[mcp_servers.${id}]`,
           ...(s.kind === "stdio"
             ? [`command = ${toml(s.command)}`, `args = ${toml(s.args)}`, ...(s.env.length ? [`env_vars = ${toml(s.env)}`] : [])]
             : [`url = ${toml(s.url)}`, ...(s.bearerTokenEnv ? [`bearer_token_env_var = ${toml(s.bearerTokenEnv)}`] : [])]),
-        ].join("\n"));
-      files.push([".codex/config.toml", file(`${tables.join("\n\n")}\n`)]);
+        ].join("\n")]));
+      files.push([".codex/config.toml", { kind: "toml", tables }]);
     }
 
     for (const { id, key, body: a } of ofType(pieces, "agents")) {
@@ -37,7 +37,7 @@ export const codex: Adapter = {
     for (const h of hooks) if (h.body.event !== "preShell") unsupported.push(`codex: ${h.key} event ${h.body.event} (edit tool matcher not verified)`);
     if (pre.length) {
       for (const { body: h } of pre) files.push([`.codex/hooks/${h.scriptName}`, file(h.script, true)]);
-      files.push([".codex/hooks.json", json({ hooks: { PreToolUse: pre.map(({ body: h }) => ({ matcher: "Bash", hooks: [{ type: "command", command: `"$(git rev-parse --show-toplevel)/.codex/hooks/${h.scriptName}"` }] })) } })]);
+      files.push([".codex/hooks.json", entries(pre.map(({ body: h }) => item(["hooks", "PreToolUse"], { matcher: "Bash", hooks: [{ type: "command", command: `"$(git rev-parse --show-toplevel)/.codex/hooks/${h.scriptName}"` }] })))]);
     }
 
     const perms = ofType(pieces, "permissions");

@@ -73,7 +73,7 @@ export function parsePreset(json: unknown, where: string): Preset {
 
 export function parseLock(json: unknown): Lock {
   const w = "agents.lock";
-  if (!isObject(json) || json.lockfileVersion !== 1) return fail(w, "unsupported lockfile");
+  if (!isObject(json) || json.lockfileVersion !== 2) return fail(w, "unsupported lockfile");
   const reg = isObject(json.registry) ? json.registry : fail(w, "missing registry");
   const pieces: Record<string, { version: string; hash: string }> = {};
   for (const [k, v] of Object.entries(isObject(json.pieces) ? json.pieces : {})) {
@@ -82,12 +82,15 @@ export function parseLock(json: unknown): Lock {
   }
   const files: Record<string, string> = {};
   for (const [k, v] of Object.entries(isObject(json.files) ? json.files : {})) files[k] = str(v, `${w}.files`);
+  const owned: Record<string, string[]> = {};
+  for (const [k, v] of Object.entries(isObject(json.owned) ? json.owned : {})) owned[k] = stringList(v, `${w}.owned.${k}`);
   return {
-    lockfileVersion: 1,
+    lockfileVersion: 2,
     registry: { source: str(reg.source, `${w}.registry.source`), commit: reg.commit === null ? null : str(reg.commit, `${w}.registry.commit`) },
     targets: parseManifest({ registry: "", targets: json.targets }).targets,
     pieces,
     files,
+    owned,
   };
 }
 

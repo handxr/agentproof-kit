@@ -25,7 +25,7 @@ GITHUB_PERSONAL_ACCESS_TOKEN=x CONTEXT7_API_KEY=y node ../../src/cli.ts check
 | `add <type>/<id>...` | Adds pieces to `agents.json`, then runs `update`. |
 | `update` | Reads the newest registry content, rewrites `agents.lock`, and rewrites the generated files. |
 | `sync` | Makes the generated files match `agents.lock`. It never moves to newer registry content. |
-| `check` | Exits 1 if a generated file was edited, the lock is out of date, an MCP env var is unset, or a target cannot install a piece. |
+| `check` | Exits 1 if a generated file or an owned entry in a shared file was edited, the lock is out of date, an MCP env var is unset, or a target cannot install a piece. |
 | `list` | Lists registry pieces and presets. An asterisk marks installed pieces. |
 | `show <type>/<id>` | Prints a piece's version, hash, and parsed content. |
 
@@ -51,7 +51,9 @@ Every command takes `--dir <path>`. The default is the current directory.
 
 agent-kit resolves presets first, parents before children. It then adds `add` and drops `remove`.
 
-`agents.lock` records the registry commit, each piece's version and content hash, and the hash of every generated file. `update` deletes files that the old lock listed and the new one does not.
+`agents.lock` records the registry commit, each piece's version and content hash, and the hash of every file agent-kit writes whole. `update` deletes files that the old lock listed and the new one does not.
+
+Some files are shared with the user: `.mcp.json`, `.cursor/mcp.json`, `.cursor/hooks.json`, `.cursor/cli.json`, `.claude/settings.json`, `.codex/hooks.json`, and `.codex/config.toml`. In these, agent-kit manages only its own entries, such as one MCP server or one permission rule, and records them under `owned` in `agents.lock`. Entries you add by hand stay. An entry of yours with the same name as one agent-kit wants to write stops `update` with an error that names it.
 
 `AGENTS.md` gets a section between `<!-- agent-kit:start -->` and `<!-- agent-kit:end -->`. agent-kit replaces only that section. Codex reads its rules from there.
 
