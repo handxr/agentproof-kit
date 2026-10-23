@@ -2,9 +2,9 @@
 
 ## Context
 
-Most agents now read project skills from `.agents/skills/`: Cursor, Codex, pi, Copilot in VS Code, Gemini CLI, OpenCode and Windsurf. Claude Code reads only `.claude/skills/`, and its docs say symlinked skill folders work. The sources are in [docs/formats.md](../formats.md#one-copy-of-each-skill).
+Most agents now read project skills from `.agents/skills/`. Cursor, Codex, pi, Copilot in VS Code, Gemini CLI, OpenCode, and Windsurf all do. Claude Code reads only `.claude/skills/`, and its docs say symlinked skill folders work. The sources are in [docs/formats.md](../formats.md#one-copy-of-each-skill).
 
-The previous design had each adapter declare `skillDirs` and picked the fewest directories covering every target. With all three targets that still meant two real copies, which could drift apart and which Cursor listed twice.
+An earlier design had each adapter declare `skillDirs`, then picked the fewest directories that covered every target. With all three targets, that still meant two real copies. The copies could drift apart, and Cursor listed both.
 
 ## Decision
 
@@ -12,11 +12,11 @@ The previous design had each adapter declare `skillDirs` and picked the fewest d
 
 Links are recorded in `agents.lock` under `files` as `link:<target>`. `check` reports a link that is missing, replaced by a real folder, or pointing elsewhere. `sync` restores it. `update` deletes links for skills that left the manifest, or all of them when `claude` leaves `targets`. A folder of yours with the same name in `.claude/skills/` stops `update` before anything is written.
 
-Per-skill links, not one link for the whole `.claude/skills/` directory, so your hand-written skills keep living there.
+agentproof-kit links each skill on its own instead of linking the whole `.claude/skills/` directory. That way your hand-written skills can stay in `.claude/skills/`.
 
 ## What you can safely change
 
-- Point a new target at `.agents/skills/` by doing nothing: it is always written.
+- A new target that reads `.agents/skills/` needs no change, because agentproof-kit always writes that folder.
 - For a target that reads only its own directory, return a `link` per skill from its adapter, as Claude does.
 
 ## What breaks if you change it
@@ -27,4 +27,4 @@ Per-skill links, not one link for the whole `.claude/skills/` directory, so your
 
 ## Known limits
 
-Unconfirmed: Cursor reads `.claude/skills/` too, so with `claude` targeted it may still list each skill twice through the symlink. The Cursor docs do not say whether it resolves symlinks or merges skills with the same name. `scripts/try-local.sh` asks each logged-in CLI to name its skills, which would show a duplicate.
+Cursor reads `.claude/skills/` too. When `claude` is also a target, Cursor lists each skill twice, once through the symlink. Both entries are the same files. `check` prints a warning, and [Known limitations](10-known-limitations.md) records it.

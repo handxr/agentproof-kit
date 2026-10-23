@@ -10,7 +10,7 @@ A project needs two things. It needs to rebuild the same files from the same loc
 
 `update` resolves `agents.json` against the newest registry content, then rewrites `agents.lock` and the generated files. Its result is a diff that goes into a pull request.
 
-Both commands are idempotent. A second run writes nothing.
+A second run of either command writes nothing.
 
 ## What you can safely change
 
