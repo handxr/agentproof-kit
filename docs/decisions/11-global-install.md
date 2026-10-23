@@ -16,7 +16,7 @@ Some pieces belong to a person, not a project: a review skill, a GitHub MCP serv
 
 ## Decision
 
-`--global` on `init`, `add`, `update`, `sync` and `check` swaps the project directory for a `Place` in `src/project.ts`: `{ scope: "user", config, root }`. `agents.json` and `agents.lock` live in `config`, which is `$XDG_CONFIG_HOME/agent-kit` or `~/.config/agent-kit`. Files go under `root`, which is `$HOME`. A plain directory string still means the project place, so nothing else changed.
+`--global` on every command swaps the project directory for a `Place` in `src/project.ts`: `{ scope: "user", config, root }`. `agents.json` and `agents.lock` live in `config`, which is `$XDG_CONFIG_HOME/agent-kit` or `~/.config/agent-kit`. Files go under `root`, which is `$HOME`. A plain directory string still means the project place, so nothing else changed.
 
 The adapters stay pure. `render(pieces, scope)` returns user paths when `scope` is `"user"`, and lists a piece type with no documented user location as unsupported, so `check --global` warns about it, as it does for projects ([decision 5](05-check-errors-vs-warnings.md)). Shared files use the same owned-entries merge as in projects ([decision 7](07-merge-owned-keys.md)), so your other entries in `~/.claude.json`, `~/.claude/settings.json` and the rest survive. The managed section goes into each agent's own instruction file instead of one `AGENTS.md`, so there is no `@AGENTS.md` import at user scope.
 
@@ -25,7 +25,7 @@ The adapters stay pure. `render(pieces, scope)` returns user paths when `scope` 
 ## What you can safely change
 
 - The config directory: only `userPlace` in `src/project.ts` knows it.
-- Support another user path once its docs confirm it: change the adapter's `userSupports` and its user branch.
+- Support another user path once its docs confirm it: change the adapter's user branch in `render`.
 
 ## What breaks if you change it
 

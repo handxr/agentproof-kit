@@ -21,15 +21,27 @@ GITHUB_PERSONAL_ACCESS_TOKEN=x CONTEXT7_API_KEY=y node ../../src/cli.ts check
 
 | Command | What it does |
 | --- | --- |
-| `init --registry <src> [--preset <id>] [--target <t>]` | Writes `agents.json`, then runs `update`. |
+| `init --registry <src> [--preset <id>] [--target <t>] [--no-skill]` | Writes `agents.json`, then runs `update`. Adds the `skills/agent-kit` skill when the registry has it. |
 | `add <type>/<id>...` | Adds pieces to `agents.json`, then runs `update`. |
+| `remove <type>/<id>...` | Removes pieces from `agents.json`, then runs `update`. Deletes only the files and entries agent-kit wrote. |
 | `update` | Reads the newest registry content, rewrites `agents.lock`, and rewrites the generated files. |
 | `sync` | Makes the generated files match `agents.lock`. It never moves to newer registry content. |
-| `check` | Exits 1 if a generated file or an owned entry in a shared file was edited, the lock is out of date, an MCP env var is unset, or a target cannot install a piece. |
+| `check` | Exits 1 if a generated file or an owned entry in a shared file was edited, the lock is out of date, or an MCP env var is unset. A piece a target cannot install is a warning. |
 | `list` | Lists registry pieces and presets. An asterisk marks installed pieces. |
 | `show <type>/<id>` | Prints a piece's version, hash, and parsed content. |
 
-Every command takes `--dir <path>`. The default is the current directory.
+Every command takes `--dir <path>` (default: the current directory), `--global`, `--json` and `--help`. Commands that write also take `--dry-run`, which lists the changes and writes nothing.
+
+## Use it from an agent
+
+agent-kit never prompts. With `--json`, each command prints one object with `ok`, `changes`, `problems` and `warnings`. Each problem has a stable `code` and a `fix` with the command to run. The exit code is 0 when ok, 1 on problems and 2 on a usage error:
+
+```sh
+$ agent-kit add rules/reakt --json
+{ "ok": false, "problems": [{ "code": "unknown-piece", "message": "not in registry: rules/reakt (did you mean rules/react?)", "fix": "agent-kit list" }], ... }
+```
+
+`init` installs the [`agent-kit` skill](examples/registry/skills/agent-kit/SKILL.md), which teaches an agent this flow. [The CLI reference](docs/cli.md) lists every key, problem code and exit code. [Decision 12](docs/decisions/12-agent-first-cli.md) explains why.
 
 `sync` and `check` load the registry at the commit in `agents.lock`. If the registry content at that commit no longer matches a piece's hash, both commands fail and tell you to run `update`. Run `sync` after a pull, and `update` when you want new pieces.
 
@@ -98,7 +110,7 @@ A project with `"presets": ["frontend"]` gets both skills, both MCP servers, and
 
 ## Global install
 
-`--global` installs pieces for your user instead of a project. It works with `init`, `add`, `update`, `sync` and `check`:
+`--global` installs pieces for your user instead of a project. It works with every command:
 
 ```sh
 agent-kit init --global --registry ~/src/my-registry --preset base
@@ -133,7 +145,7 @@ src/registry.ts       loads a registry from a path or a git clone, reads and has
 src/resolve.ts        presets and add/remove to a sorted list of piece keys
 src/adapters/*.ts     one file per target: pieces in, file contents out
 src/project.ts        update, sync, check, and the AGENTS.md section
-src/cli.ts            argument parsing and output
+src/cli.ts            the command table, argument parsing, JSON and text output, exit codes
 ```
 
 Parsing happens once, at the edge. `resolve.ts` and the adapters are pure functions, so the tests call them without touching git. `project.ts` compares each file's content before it writes, and writes through a temporary file and a rename. Two `sync` runs in a row leave the tree unchanged.
