@@ -2,11 +2,11 @@
 
 agent-kit installs agent configuration from a shared registry into a project, for Cursor, Claude Code, and Codex. A registry holds skills, MCP servers, rules, commands, subagents, hooks, and permissions. A project lists the presets and pieces it wants in `agents.json`. agent-kit writes each target's native files and records what it wrote in `agents.lock`.
 
-This is a reference repo to read and fork. It is not published to npm. See [Fork agent-kit for your team](docs/forking.md).
+**This repo is a template, not a package.** There is no `agent-kit` on npm, and none will be published from here. Fork it, rename it, and publish the CLI to your company's private npm registry, pointed at your own config registry. [Fork agent-kit for your team](docs/forking.md) walks through it.
 
 ## Try it
 
-agent-kit needs Node 24 or later, which runs the TypeScript sources directly.
+agent-kit needs Node 24 or later, which runs the TypeScript sources directly. These commands run the CLI from source against the example registry, with nothing published:
 
 ```sh
 npm install
