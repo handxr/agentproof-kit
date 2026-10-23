@@ -54,4 +54,4 @@ The name also appears in places that existing projects depend on. Change them to
 - The cache directory `~/.cache/agent-kit` and the `AGENT_KIT_CACHE` variable in `src/registry.ts`.
 - Error messages and test expectations that say "agent-kit did not write it".
 
-A plain replace works: `rg -l agent-kit | xargs sed -i 's/agent-kit/your-name/g'` (and `AGENT_KIT_` for the variable), then `npm test` and `npm run smoke`, then regenerate `examples/project` with `update`.
+A plain replace works: `rg -l agent-kit | xargs sed -i 's/agent-kit/your-name/g'` (and `AGENT_KIT_` for the variable), (on macOS use `sed -i ''`), then `npm test` and `npm run smoke`, then regenerate `examples/project` with `update`.
