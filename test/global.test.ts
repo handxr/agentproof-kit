@@ -9,24 +9,24 @@ import { ENV, fixture, snapshot, writeJson, issues } from "./helpers.ts";
 /** A throwaway HOME next to a registry copy. The registry path in agents.json is absolute. */
 function home(env: Record<string, string> = {}) {
   const { registry, project } = fixture();
-  const HOME = mkdtempSync(join(tmpdir(), "agent-kit-home-"));
+  const HOME = mkdtempSync(join(tmpdir(), "agentproof-kit-home-"));
   const e = { ...ENV, HOME, ...env };
   return { registry, project, HOME, env: e, place: userPlace(e) };
 }
 const manifest = (registry: string, more: Record<string, unknown> = {}) => ({ registry, presets: ["frontend"], add: {}, remove: { hooks: ["format-on-edit"] }, targets: ["cursor", "claude", "codex"], ...more });
 const json = (path: string) => JSON.parse(readFileSync(path, "utf8"));
 
-test("--global writes into HOME and keeps agents.json and the lock in ~/.config/agent-kit", () => {
+test("--global writes into HOME and keeps agents.json and the lock in ~/.config/agentproof-kit", () => {
   const { registry, HOME, place } = home();
   init(place, manifest(registry));
   const tree = snapshot(HOME);
-  assert.ok(tree[".config/agent-kit/agents.json"] && tree[".config/agent-kit/agents.lock"]);
+  assert.ok(tree[".config/agentproof-kit/agents.json"] && tree[".config/agentproof-kit/agents.lock"]);
   assert.ok(tree[".agents/skills/code-review/SKILL.md"]);
   assert.equal(tree[".claude/skills/code-review"], "-> ../../.agents/skills/code-review");
   assert.ok(json(join(HOME, ".claude.json")).mcpServers.github);
   assert.ok(json(join(HOME, ".cursor/mcp.json")).mcpServers.context7);
   assert.match(tree[".codex/config.toml"]!, /\[mcp_servers\.github\]/);
-  assert.match(tree[".claude/CLAUDE.md"]!, /agent-kit:start[\s\S]*### typescript-strict/);
+  assert.match(tree[".claude/CLAUDE.md"]!, /agentproof-kit:start[\s\S]*### typescript-strict/);
   assert.match(tree[".codex/AGENTS.md"]!, /### typescript-strict/);
   assert.equal(json(join(HOME, ".claude/settings.json")).hooks.PreToolUse[0].hooks[0].command, '"$HOME"/.claude/hooks/block-force-push.sh');
   // Nothing project-only leaks into HOME.
@@ -35,11 +35,11 @@ test("--global writes into HOME and keeps agents.json and the lock in ~/.config/
 });
 
 test("--global respects XDG_CONFIG_HOME", () => {
-  const xdg = mkdtempSync(join(tmpdir(), "agent-kit-xdg-"));
+  const xdg = mkdtempSync(join(tmpdir(), "agentproof-kit-xdg-"));
   const { registry, HOME, place } = home({ XDG_CONFIG_HOME: xdg });
   init(place, manifest(registry));
-  assert.ok(snapshot(xdg)["agent-kit/agents.lock"]);
-  assert.equal(snapshot(HOME)[".config/agent-kit/agents.lock"], undefined);
+  assert.ok(snapshot(xdg)["agentproof-kit/agents.lock"]);
+  assert.equal(snapshot(HOME)[".config/agentproof-kit/agents.lock"], undefined);
 });
 
 test("--global keeps the user's own entries in ~/.claude.json and ~/.claude/settings.json", () => {
@@ -54,7 +54,7 @@ test("--global keeps the user's own entries in ~/.claude.json and ~/.claude/sett
   assert.equal(st.model, "opus");
   assert.ok(st.permissions.allow.includes("Bash(ls)") && st.permissions.allow.includes("Bash(git status)"));
 
-  // Removing everything takes back only agent-kit's entries.
+  // Removing everything takes back only agentproof-kit's entries.
   writeJson(join(place.config, "agents.json"), manifest(registry, { presets: [] }));
   update(place);
   assert.deepEqual(json(join(HOME, ".claude.json")), { numStartups: 7, mcpServers: { mine: { command: "my-server" } } });

@@ -9,7 +9,7 @@ const keysOf = (lists: PieceLists): PieceKey[] => PIECE_TYPES.flatMap((t) => (li
 export function expandPreset(presets: ReadonlyMap<PresetId, Preset>, id: PresetId, stack: readonly PresetId[] = []): PieceKey[] {
   if (stack.includes(id)) throw new ParseError(`preset cycle: ${[...stack, id].join(" -> ")}`);
   const preset = presets.get(id);
-  if (!preset) throw new ParseError(`unknown preset "${id}"${hint(id, [...presets.keys()])}`, "unknown-preset", "agent-kit list");
+  if (!preset) throw new ParseError(`unknown preset "${id}"${hint(id, [...presets.keys()])}`, "unknown-preset", "agentproof-kit list");
   return [...preset.extends.flatMap((p) => expandPreset(presets, p, [...stack, id])), ...keysOf(preset.pieces)];
 }
 
@@ -17,7 +17,7 @@ export function resolvePieces(manifest: Manifest, presets: ReadonlyMap<PresetId,
   const removed = new Set(keysOf(manifest.remove));
   const wanted = [...new Set([...manifest.presets.flatMap((p) => expandPreset(presets, p)), ...keysOf(manifest.add)])].filter((k) => !removed.has(k));
   const missing = wanted.filter((k) => !known.has(k));
-  if (missing.length) throw new ParseError(`not in registry: ${missing.map((k) => `${k}${hint(k, [...known])}`).join(", ")}`, "unknown-piece", "agent-kit list");
+  if (missing.length) throw new ParseError(`not in registry: ${missing.map((k) => `${k}${hint(k, [...known])}`).join(", ")}`, "unknown-piece", "agentproof-kit list");
   return wanted.sort();
 }
 

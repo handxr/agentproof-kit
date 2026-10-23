@@ -1,4 +1,4 @@
-# agent-kit
+# agentproof-kit
 
 - Node 24 runs `src/*.ts` directly. No build step.
 - Run `npm test` and `npm run typecheck` before you commit.

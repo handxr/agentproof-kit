@@ -1,19 +1,19 @@
-# Fork agent-kit for your team
+# Fork agentproof-kit for your team
 
-This repo is a template. Your company forks it, renames the CLI, publishes it to a private npm registry, and points it at a private config registry. Teams then install your package, never this repo. The steps below use `acme` as the company and `@acme/agent-kit` as the package.
+This repo is a template. Your company forks it, renames the CLI, publishes it to a private npm registry, and points it at a private config registry. Teams then install your package, never this repo. The steps below use `acme` as the company and `@acme/agentproof-kit` as the package.
 
 ## 1. Fork and rename
 
-1. Fork or copy this repo into your organization, for example `acme/agent-kit`.
-2. Pick the command name. If you keep `agent-kit`, skip to step 3. Otherwise replace it everywhere, before any project uses your fork:
+1. Fork or copy this repo into your organization, for example `acme/agentproof-kit`.
+2. Pick the command name. If you keep `agentproof-kit`, skip to step 3. Otherwise replace it everywhere, before any project uses your fork:
 
    ```sh
-   rg -l agent-kit | xargs sed -i 's/agent-kit/acme-agents/g'
-   rg -l AGENT_KIT_ | xargs sed -i 's/AGENT_KIT_/ACME_AGENTS_/g'
+   rg -l agentproof-kit | xargs sed -i 's/agentproof-kit/acme-agents/g'
+   rg -l AGENTPROOF_KIT_ | xargs sed -i 's/AGENTPROOF_KIT_/ACME_AGENTS_/g'
    ```
 
    On macOS use `sed -i ''`. [Where the name lives](#where-the-name-lives) lists what this touches.
-3. Set the package name in `package.json` to your scope, for example `"name": "@acme/agent-kit"`.
+3. Set the package name in `package.json` to your scope, for example `"name": "@acme/agentproof-kit"`.
 
 ## 2. Create your config registry
 
@@ -25,7 +25,7 @@ The config registry holds your skills, MCP servers, rules, and presets. Keep it 
 4. Bump a piece's `version` in `registry.json` each time you change its files. The lockfile also records a content hash, so a forgotten bump still shows up.
 5. Push the repo. Tag a release if you want projects to pin a ref.
 
-Keep `skills/agent-kit` (renamed with the CLI). `init` installs it so agents know how to run the CLI.
+Keep `skills/agentproof-kit` (renamed with the CLI). `init` installs it so agents know how to run the CLI.
 
 Pieces in `mcp/` list environment variable names only. The CLI rejects an MCP file whose `env` is an object, because an object can hold secret values.
 
@@ -47,7 +47,7 @@ Node does not strip TypeScript types inside `node_modules`, so the package ships
 `package.json` has `"private": true` so the template can't be published by accident. In your fork, remove that line and add a `publishConfig` for your registry. For GitHub Packages:
 
 ```json
-"name": "@acme/agent-kit",
+"name": "@acme/agentproof-kit",
 "publishConfig": { "registry": "https://npm.pkg.github.com" }
 ```
 
@@ -72,12 +72,12 @@ npm publish
 Each developer needs the same `.npmrc` scope line and a read token in `NPM_TOKEN`. Then:
 
 ```sh
-npx @acme/agent-kit init --registry github:acme/agent-registry#main --preset base
+npx @acme/agentproof-kit init --registry github:acme/agent-registry#main --preset base
 ```
 
-`update` clones the registry into `~/.cache/agent-kit` and writes the commit it used to `agents.lock`. Git uses the developer's own credentials for the private registry repo. Set `AGENT_KIT_CACHE` to move the cache.
+`update` clones the registry into `~/.cache/agentproof-kit` and writes the commit it used to `agents.lock`. Git uses the developer's own credentials for the private registry repo. Set `AGENTPROOF_KIT_CACHE` to move the cache.
 
-Commit `agents.json`, `agents.lock`, `AGENTS.md`, and the generated files. Run `npx @acme/agent-kit check` in CI.
+Commit `agents.json`, `agents.lock`, `AGENTS.md`, and the generated files. Run `npx @acme/agentproof-kit check` in CI.
 
 ## 6. Keep up with upstream
 
@@ -107,19 +107,19 @@ If you renamed the CLI, the merge conflicts wherever upstream changed a line wit
 
 ## Know what each decision protects
 
-[docs/decisions/](decisions/README.md) has one file per design decision. Each one says what you can change in your fork and what breaks if you change the decision itself. Read the matching file before you change the lockfile, `check`, an adapter, or the way agent-kit writes shared files.
+[docs/decisions/](decisions/README.md) has one file per design decision. Each one says what you can change in your fork and what breaks if you change the decision itself. Read the matching file before you change the lockfile, `check`, an adapter, or the way agentproof-kit writes shared files.
 
 ## Where the name lives
 
-`agent-kit` appears in these places. A full replace (step 1) covers them all:
+`agentproof-kit` appears in these places. A full replace (step 1) covers them all:
 
-- `package.json`: `name`, the `bin` key, and the `agent-kit` script.
+- `package.json`: `name`, the `bin` key, and the `agentproof-kit` script.
 - Help text, error messages, and the `fix` commands in `src/cli.ts`, `src/project.ts`, `src/parse.ts`, `src/resolve.ts`, and `src/registry.ts`.
-- The global config directory `~/.config/agent-kit` (`userPlace` in `src/project.ts`).
-- The cache directory `~/.cache/agent-kit` and the `AGENT_KIT_CACHE` variable in `src/registry.ts`.
-- The skill: `SKILL` in `src/cli.ts` and `examples/registry/skills/agent-kit/`.
-- The `AGENTS.md` markers `<!-- agent-kit:start -->` and `<!-- agent-kit:end -->` (`START` and `END` in `src/project.ts`).
-- `.codex/rules/agent-kit.rules` in `src/adapters/codex.ts`.
+- The global config directory `~/.config/agentproof-kit` (`userPlace` in `src/project.ts`).
+- The cache directory `~/.cache/agentproof-kit` and the `AGENTPROOF_KIT_CACHE` variable in `src/registry.ts`.
+- The skill: `SKILL` in `src/cli.ts` and `examples/registry/skills/agentproof-kit/`.
+- The `AGENTS.md` markers `<!-- agentproof-kit:start -->` and `<!-- agentproof-kit:end -->` (`START` and `END` in `src/project.ts`).
+- `.codex/rules/agentproof-kit.rules` in `src/adapters/codex.ts`.
 - Test expectations, `README.md`, and the docs.
 
 Rename before any project uses your fork. Projects generated with the old markers get a second `AGENTS.md` section, and the old Codex rules file stays until `update` deletes it as stale. After the replace, run `npm test` and `npm run smoke`, and regenerate `examples/project` with `update`.

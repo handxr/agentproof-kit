@@ -2,7 +2,7 @@
 
 ## Context
 
-MCP servers need tokens. The registry is a git repo that many people read, and every project commits the files agent-kit generates.
+MCP servers need tokens. The registry is a git repo that many people read, and every project commits the files agentproof-kit generates.
 
 ## Decision
 

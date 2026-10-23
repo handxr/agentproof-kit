@@ -6,7 +6,7 @@ Most people who open a project never touch its agent setup. They clone the repo 
 
 ## Decision
 
-Projects commit `agents.json`, `agents.lock`, `AGENTS.md`, and every file agent-kit writes. A fresh clone works with no agent-kit install. Only the person who changes `agents.json` or updates the registry needs the CLI.
+Projects commit `agents.json`, `agents.lock`, `AGENTS.md`, and every file agentproof-kit writes. A fresh clone works with no agentproof-kit install. Only the person who changes `agents.json` or updates the registry needs the CLI.
 
 ## What you can safely change
 
@@ -15,5 +15,5 @@ Projects commit `agents.json`, `agents.lock`, `AGENTS.md`, and every file agent-
 
 ## What breaks if you change it
 
-- If you stop committing the generated files, every clone needs agent-kit, network access to the registry, and a `sync` before the agent sees any skill or MCP server.
+- If you stop committing the generated files, every clone needs agentproof-kit, network access to the registry, and a `sync` before the agent sees any skill or MCP server.
 - `check` compares the disk with the lock. In a repo without the generated files, CI has to run `sync` before `check`, so `check` can no longer catch a hand edit to a generated file.

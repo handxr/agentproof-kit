@@ -48,7 +48,7 @@ test("removing a piece deletes only its keys", () => {
   assert.equal(readJ(project, "agents.lock").owned[".mcp.json"].length, 1);
 });
 
-test("a shared file agent-kit created is deleted when nothing of ours is left", () => {
+test("a shared file agentproof-kit created is deleted when nothing of ours is left", () => {
   const { project } = fixture();
   update(project);
   writeJson(join(project, "agents.json"), { ...manifest(project), remove: { hooks: ["format-on-edit", "block-force-push"] } });
@@ -77,7 +77,7 @@ test("editing an owned key is drift, editing a user key is not", () => {
 test("a user key with the same name as an owned key is a clear error", () => {
   const { project } = fixture();
   writeJson(join(project, ".mcp.json"), { mcpServers: { github: { command: "my-github" } } });
-  assert.throws(() => update(project), /\.mcp\.json: \/mcpServers\/github already exists and agent-kit did not write it/);
+  assert.throws(() => update(project), /\.mcp\.json: \/mcpServers\/github already exists and agentproof-kit did not write it/);
   assert.throws(() => readJ(project, "agents.lock"), /ENOENT/);
 });
 
@@ -85,5 +85,5 @@ test("a user TOML table with the same name as an owned table is a clear error", 
   const { project } = fixture();
   mkdirSync(join(project, ".codex"));
   writeFileSync(join(project, ".codex/config.toml"), '[mcp_servers.github]\ncommand = "mine"\n');
-  assert.throws(() => update(project), /\.codex\/config\.toml: \[mcp_servers\.github\] already exists and agent-kit did not write it/);
+  assert.throws(() => update(project), /\.codex\/config\.toml: \[mcp_servers\.github\] already exists and agentproof-kit did not write it/);
 });

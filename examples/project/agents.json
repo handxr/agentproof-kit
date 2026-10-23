@@ -1,7 +1,17 @@
 {
   "registry": "../registry",
-  "presets": ["frontend"],
+  "presets": [
+    "frontend"
+  ],
   "add": {},
-  "remove": { "hooks": ["format-on-edit"] },
-  "targets": ["cursor", "claude", "codex"]
+  "remove": {
+    "hooks": [
+      "format-on-edit"
+    ]
+  },
+  "targets": [
+    "cursor",
+    "claude",
+    "codex"
+  ]
 }

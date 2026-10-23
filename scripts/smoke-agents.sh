@@ -13,7 +13,7 @@ TMP=$(cd "$(mktemp -d)" && pwd -P)
 trap 'rm -rf "$TMP"' EXIT
 cp -r "$ROOT/examples/registry" "$TMP/registry"
 mkdir "$TMP/project" && cd "$TMP/project" && git init -q
-node "$ROOT/src/cli.ts" init --registry ../registry --preset frontend >/dev/null || { echo "FAIL: agent-kit init"; exit 1; }
+node "$ROOT/src/cli.ts" init --registry ../registry --preset frontend >/dev/null || { echo "FAIL: agentproof-kit init"; exit 1; }
 export GITHUB_PERSONAL_ACCESS_TOKEN=smoke-dummy CONTEXT7_API_KEY=smoke-dummy
 fails=0
 ok()   { echo "  ok: $1"; }

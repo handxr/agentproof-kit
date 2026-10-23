@@ -27,7 +27,7 @@ test("--json: every command prints one result with the same keys", () => {
     for (const k of KEYS) assert.ok(k in r, `${cmd} has ${k}`);
     assert.equal(r.command, cmd);
   }
-  const empty = mkdtempSync(join(tmpdir(), "agent-kit-init-"));
+  const empty = mkdtempSync(join(tmpdir(), "agentproof-kit-init-"));
   const r = json(["init", "--registry", fixture().registry, "--dir", empty]).out;
   assert.equal(r.command, "init");
   assert.ok(r.changes.some((c: { path: string; action: string }) => c.path === "agents.json" && c.action === "write"));
@@ -49,31 +49,31 @@ test("exit codes: 0 ok, 1 problems, 2 usage", () => {
 });
 
 test("errors carry a stable code and the exact fix command, never a Node stack", () => {
-  const empty = mkdtempSync(join(tmpdir(), "agent-kit-none-"));
+  const empty = mkdtempSync(join(tmpdir(), "agentproof-kit-none-"));
   for (const cmd of COMMANDS.filter((c) => c !== "init")) {
     const args = cmd === "show" || cmd === "add" || cmd === "remove" ? [cmd, "rules/react"] : [cmd];
     const r = json([...args, "--dir", empty]);
     assert.equal(r.status, 1, cmd);
-    assert.deepEqual(r.out.problems, [{ code: "manifest-missing", message: `no agents.json in ${empty}`, fix: `agent-kit init --registry <src> --dir ${empty}` }]);
+    assert.deepEqual(r.out.problems, [{ code: "manifest-missing", message: `no agents.json in ${empty}`, fix: `agentproof-kit init --registry <src> --dir ${empty}` }]);
   }
   const human = run(["check", "--dir", empty]);
   assert.doesNotMatch(human.stderr, /at .*\.ts:\d+|ENOENT|node:internal/);
-  assert.match(human.stderr, /^error\[manifest-missing\]: .*\n {2}fix: agent-kit init --registry <src>/);
+  assert.match(human.stderr, /^error\[manifest-missing\]: .*\n {2}fix: agentproof-kit init --registry <src>/);
 
   const { project } = fixture();
   const typo = json(["add", "rules/reakt", "--dir", project]).out.problems[0];
   assert.equal(typo.code, "unknown-piece");
   assert.match(typo.message, /rules\/reakt \(did you mean rules\/react\?\)/);
-  assert.equal(typo.fix, `agent-kit list --dir ${project}`);
+  assert.equal(typo.fix, `agentproof-kit list --dir ${project}`);
   assert.equal(json(["add", "nope", "--dir", project]).out.problems[0].code, "invalid-piece-key");
   assert.equal(json(["init", "--dir", project]).out.problems[0].code, "usage");
   assert.equal(json(["init", "--registry", "../registry", "--dir", project]).out.problems[0].code, "manifest-exists");
-  assert.equal(json(["check", "--dir", project]).out.problems[0].fix, `agent-kit update --dir ${project}`);
+  assert.equal(json(["check", "--dir", project]).out.problems[0].fix, `agentproof-kit update --dir ${project}`);
 
-  const home = mkdtempSync(join(tmpdir(), "agent-kit-h-"));
+  const home = mkdtempSync(join(tmpdir(), "agentproof-kit-h-"));
   const g = json(["check", "--global"], { HOME: home }).out;
   assert.equal(g.scope, "user");
-  assert.equal(g.problems[0].fix, "agent-kit init --registry <src> --global");
+  assert.equal(g.problems[0].fix, "agentproof-kit init --registry <src> --global");
 
   writeFileSync(join(project, "agents.json"), "{ not json");
   const bad = json(["update", "--dir", project]);
@@ -89,7 +89,7 @@ test("check problems: drift fixes with sync, env with export", () => {
   const r = json(["check", "--dir", project], { GITHUB_PERSONAL_ACCESS_TOKEN: "" }).out;
   assert.equal(r.ok, false);
   assert.deepEqual(r.problems.map((p: { code: string; fix: string }) => [p.code, p.fix]), [
-    ["drift", `agent-kit sync --dir ${project}`],
+    ["drift", `agentproof-kit sync --dir ${project}`],
     ["env-missing", "export GITHUB_PERSONAL_ACCESS_TOKEN=<value>"],
   ]);
 });
@@ -112,7 +112,7 @@ test("--dry-run lists the changes and touches nothing", () => {
   assert.match(run(["update", "--dry-run", "--dir", fixture().project]).stdout, /^would change:/m);
 });
 
-test("remove deletes only what agent-kit wrote, in a project and with --global", () => {
+test("remove deletes only what agentproof-kit wrote, in a project and with --global", () => {
   const { project } = fixture({ add: { agents: ["explorer"] } });
   run(["update", "--dir", project]);
   writeFileSync(join(project, ".cursor/rules/mine.mdc"), "mine\n");
@@ -134,24 +134,24 @@ test("remove deletes only what agent-kit wrote, in a project and with --global",
   assert.equal(json(["add", "rules/react", "--dir", project]).status, 0);
   assert.ok(existsSync(join(project, ".cursor/rules/react.mdc")));
 
-  const home = mkdtempSync(join(tmpdir(), "agent-kit-h-"));
+  const home = mkdtempSync(join(tmpdir(), "agentproof-kit-h-"));
   const reg = fixture().registry;
   assert.equal(json(["init", "--global", "--registry", reg, "--preset", "base"], { HOME: home }).status, 0);
   const g = json(["remove", "--global", "rules/conventional-commits"], { HOME: home });
   assert.equal(g.status, 0, g.stderr);
-  assert.ok(g.out.changes.some((c: { path: string; action: string }) => c.path === ".config/agent-kit/agents.json"));
+  assert.ok(g.out.changes.some((c: { path: string; action: string }) => c.path === ".config/agentproof-kit/agents.json"));
   assert.ok(!existsSync(join(home, ".cursor/rules/conventional-commits.mdc")));
   assert.equal(run(["check", "--global"], { HOME: home }).status, 0);
 });
 
 test("never colored without a TTY or with NO_COLOR; --help works per command", () => {
-  const empty = mkdtempSync(join(tmpdir(), "agent-kit-none-"));
+  const empty = mkdtempSync(join(tmpdir(), "agentproof-kit-none-"));
   assert.doesNotMatch(run(["check", "--dir", empty]).stderr, /\x1b\[/);
   assert.doesNotMatch(run(["check", "--dir", empty], { NO_COLOR: "1" }).stderr, /\x1b\[/);
   for (const cmd of COMMANDS) {
     const h = run([cmd, "--help"]);
     assert.equal(h.status, 0);
-    assert.match(h.stdout, new RegExp(`^Usage: agent-kit ${cmd}`));
+    assert.match(h.stdout, new RegExp(`^Usage: agentproof-kit ${cmd}`));
     assert.match(h.stdout, /Exit codes: 0 ok, 1 problems, 2 usage error\./);
   }
   const top = run(["--help"]);
@@ -161,23 +161,23 @@ test("never colored without a TTY or with NO_COLOR; --help works per command", (
   assert.equal(r.status, 1, "does not wait for input");
 });
 
-test("init adds skills/agent-kit by default; --no-skill opts out", () => {
+test("init adds skills/agentproof-kit by default; --no-skill opts out", () => {
   const reg = fixture().registry;
-  const fresh = () => mkdtempSync(join(tmpdir(), "agent-kit-init-"));
+  const fresh = () => mkdtempSync(join(tmpdir(), "agentproof-kit-init-"));
   const a = fresh();
   assert.equal(json(["init", "--registry", reg, "--dir", a]).status, 0);
-  assert.deepEqual(JSON.parse(readFileSync(join(a, "agents.json"), "utf8")).add, { skills: ["agent-kit"] });
-  assert.match(readFileSync(join(a, ".claude/skills/agent-kit/SKILL.md"), "utf8"), /^---\nname: agent-kit\ndescription: /);
+  assert.deepEqual(JSON.parse(readFileSync(join(a, "agents.json"), "utf8")).add, { skills: ["agentproof-kit"] });
+  assert.match(readFileSync(join(a, ".claude/skills/agentproof-kit/SKILL.md"), "utf8"), /^---\nname: agentproof-kit\ndescription: /);
   const b = fresh();
   json(["init", "--registry", reg, "--no-skill", "--dir", b]);
   assert.deepEqual(JSON.parse(readFileSync(join(b, "agents.json"), "utf8")).add, {});
   const bare = fixture().registry;
   const index = JSON.parse(readFileSync(join(bare, "registry.json"), "utf8"));
-  delete index.skills["agent-kit"];
+  delete index.skills["agentproof-kit"];
   writeFileSync(join(bare, "registry.json"), JSON.stringify(index));
   const c = json(["init", "--registry", bare, "--dir", fresh()]);
   assert.equal(c.status, 0);
-  assert.match(c.out.warnings[0], /has no skills\/agent-kit/);
+  assert.match(c.out.warnings[0], /has no skills\/agentproof-kit/);
 });
 
 test("an agent with only --json and the skill gets through init, add, check and remove", () => {

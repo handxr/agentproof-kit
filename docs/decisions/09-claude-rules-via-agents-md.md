@@ -6,7 +6,7 @@ Codex and Cursor read `AGENTS.md`. Claude Code reads it only when the project ha
 
 ## Decision
 
-Rules live only in the managed `AGENTS.md` section, for every target. When `claude` is a target, agent-kit owns one line in `CLAUDE.md`, `@AGENTS.md`. It creates the file if absent, appends the line to a hand-written `CLAUDE.md` that lacks it, and never touches the other lines. When `claude` leaves `targets`, the line goes, and the file too if nothing else is in it.
+Rules live only in the managed `AGENTS.md` section, for every target. When `claude` is a target, agentproof-kit owns one line in `CLAUDE.md`, `@AGENTS.md`. It creates the file if absent, appends the line to a hand-written `CLAUDE.md` that lacks it, and never touches the other lines. When `claude` leaves `targets`, the line goes, and the file too if nothing else is in it.
 
 `.claude/rules/` is no longer written. With the import in place, a rule in both places would load twice in Claude. The cost is path scoping: a rule with `globs` now always loads in Claude, with an "Applies to `src/**/*.tsx`" line in front of it, the same way Codex already gets it. For the short convention rules a registry holds, one copy that every agent reads is worth more than lazy loading in one agent.
 
@@ -16,7 +16,7 @@ Rules live only in the managed `AGENTS.md` section, for every target. When `clau
 
 ## What breaks if you change it
 
-- If agent-kit writes a whole `CLAUDE.md`, it erases what the user wrote there.
+- If agentproof-kit writes a whole `CLAUDE.md`, it erases what the user wrote there.
 - If the import line goes and the user has a `CLAUDE.md`, Claude sees no rules at all.
 
 ## Known limits

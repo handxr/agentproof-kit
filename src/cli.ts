@@ -24,10 +24,10 @@ type Opts = { registry?: string; preset?: string[]; target?: string[]; skill?: b
 type Outcome = { changed?: string[]; problems?: Problem[]; warnings?: string[]; data?: unknown; text?: string | undefined };
 type Command = { usage: string; summary: string; writes: boolean; run: (where: Place, args: string[], o: Opts) => Outcome };
 
-const SKILL = "skills/agent-kit";
+const SKILL = "skills/agentproof-kit";
 const registryOf = (config: string) => loadRegistry(readManifest(config).registry, config, readLock(config)?.registry.commit ?? null);
 const needKeys = (cmd: string, args: string[]) => {
-  if (!args.length) throw new ParseError(`${cmd} needs at least one <type>/<id>`, "usage", `agent-kit ${cmd} --help`);
+  if (!args.length) throw new ParseError(`${cmd} needs at least one <type>/<id>`, "usage", `agentproof-kit ${cmd} --help`);
 };
 
 const COMMANDS: Record<string, Command> = {
@@ -36,12 +36,12 @@ const COMMANDS: Record<string, Command> = {
     summary: `Write agents.json, then update. Adds ${SKILL} when the registry has it, unless you pass --no-skill.`,
     writes: true,
     run: (where, _args, o) => {
-      if (!o.registry) throw new ParseError("init needs --registry <src>", "usage", "agent-kit init --registry <src>");
+      if (!o.registry) throw new ParseError("init needs --registry <src>", "usage", "agentproof-kit init --registry <src>");
       const warnings: string[] = [];
       const extra: Record<string, string[]> = {};
       if (o.skill !== false) {
-        if (loadRegistry(o.registry, where.config, null).index.has(parsePieceKey(SKILL))) extra.skills = ["agent-kit"];
-        else warnings.push(`registry ${o.registry} has no ${SKILL}; agents will not get the agent-kit skill`);
+        if (loadRegistry(o.registry, where.config, null).index.has(parsePieceKey(SKILL))) extra.skills = ["agentproof-kit"];
+        else warnings.push(`registry ${o.registry} has no ${SKILL}; agents will not get the agentproof-kit skill`);
       }
       const changed = init(where, { registry: o.registry, presets: o.preset ?? [], add: extra, remove: {}, targets: o.target ?? ["cursor", "claude", "codex"] });
       return { changed, warnings };
@@ -50,7 +50,7 @@ const COMMANDS: Record<string, Command> = {
   add: { usage: "add <type>/<id>...", summary: "Add pieces to agents.json, then update.", writes: true, run: (w, a) => (needKeys("add", a), { changed: add(w, a) }) },
   remove: {
     usage: "remove <type>/<id>...",
-    summary: "Remove pieces from agents.json, then update. Deletes only the files and entries agent-kit wrote.",
+    summary: "Remove pieces from agents.json, then update. Deletes only the files and entries agentproof-kit wrote.",
     writes: true,
     run: (w, a) => (needKeys("remove", a), { changed: removePieces(w, a) }),
   },
@@ -86,7 +86,7 @@ const COMMANDS: Record<string, Command> = {
     summary: "Print a piece's metadata and files.",
     writes: false,
     run: (w, a) => {
-      if (a.length !== 1) throw new ParseError("show needs exactly one <type>/<id>", "usage", "agent-kit show --help");
+      if (a.length !== 1) throw new ParseError("show needs exactly one <type>/<id>", "usage", "agentproof-kit show --help");
       const p = loadPiece(registryOf(w.config), parsePieceKey(a[0]!));
       const data = JSON.parse(JSON.stringify({ key: p.key, version: p.version, description: p.description, hash: p.hash, body: p.body }, (_k, v: unknown) => (v instanceof Map ? Object.fromEntries(v) : v)));
       return { data, text: JSON.stringify(data, null, 2) };
@@ -96,25 +96,25 @@ const COMMANDS: Record<string, Command> = {
 
 const COMMON = `Options for every command:
   --dir <path>   Project directory. Default: the current directory.
-  --global, -g   Use your user setup: agents.json and agents.lock in $XDG_CONFIG_HOME/agent-kit
-                 (default ~/.config/agent-kit), generated files under $HOME. Not with --dir.
+  --global, -g   Use your user setup: agents.json and agents.lock in $XDG_CONFIG_HOME/agentproof-kit
+                 (default ~/.config/agentproof-kit), generated files under $HOME. Not with --dir.
   --json         Print one JSON result on stdout. See docs/cli.md for the schema.
   --dry-run      Commands that write: list the changes and write nothing.
   --help, -h     Show help for a command.
 
 Exit codes: 0 ok, 1 problems, 2 usage error.`;
 
-const USAGE = `Usage: agent-kit <command> [options]
+const USAGE = `Usage: agentproof-kit <command> [options]
 
 Commands:
 ${Object.values(COMMANDS).map((c) => `  ${c.usage.split(" ")[0]!.padEnd(8)} ${c.summary}`).join("\n")}
 
 ${COMMON}
 
-Run agent-kit <command> --help for one command.`;
-const helpFor = (c: Command) => `Usage: agent-kit ${c.usage} [options]\n\n${c.summary}\n\n${COMMON}`;
+Run agentproof-kit <command> --help for one command.`;
+const helpFor = (c: Command) => `Usage: agentproof-kit ${c.usage} [options]\n\n${c.summary}\n\n${COMMON}`;
 
-const usageError = (message: string, fix = "agent-kit --help"): never => {
+const usageError = (message: string, fix = "agentproof-kit --help"): never => {
   throw new ParseError(message, "usage", fix);
 };
 
@@ -122,14 +122,14 @@ function toProblem(e: unknown): Problem {
   if (e instanceof ParseError) return { code: e.code, message: e.message, fix: e.fix };
   if (e instanceof SyntaxError) return { code: "invalid-config", message: `invalid JSON: ${e.message}`, fix: null };
   const err = e as NodeJS.ErrnoException;
-  if (typeof err?.code === "string" && err.code.startsWith("ERR_PARSE_ARGS")) return { code: "usage", message: err.message, fix: "agent-kit --help" };
+  if (typeof err?.code === "string" && err.code.startsWith("ERR_PARSE_ARGS")) return { code: "usage", message: err.message, fix: "agentproof-kit --help" };
   const where = err?.path ? ` (${err.path})` : "";
   return { code: "internal" satisfies ProblemCode, message: `${err?.code ? `${err.code}: ` : ""}${err?.message ?? String(e)}${where}`.replace(/^(\w+): \1: /, "$1: "), fix: null };
 }
 
 /** Make a fix command runnable as is: same scope, same --dir. */
 function scopedFix(fix: string | null, extra: string): string | null {
-  if (!fix || !fix.startsWith("agent-kit ") || fix.startsWith("agent-kit --") || fix.endsWith(" --help")) return fix;
+  if (!fix || !fix.startsWith("agentproof-kit ") || fix.startsWith("agentproof-kit --") || fix.endsWith(" --help")) return fix;
   return fix + extra;
 }
 
@@ -155,8 +155,8 @@ function main(argv: string[]): { result: Result; text?: string | undefined; json
     const cmd = COMMANDS[name];
     if (!cmd) usageError(`unknown command "${name}"`);
     if (values.help) return { result: { ...result, ok: true }, text: helpFor(cmd!), json: false };
-    if (values.global && values.dir) usageError("--global and --dir cannot be combined", `agent-kit ${name} --help`);
-    if (values["dry-run"] && !cmd!.writes) usageError(`${name} does not write, so --dry-run does not apply`, `agent-kit ${name} --help`);
+    if (values.global && values.dir) usageError("--global and --dir cannot be combined", `agentproof-kit ${name} --help`);
+    if (values["dry-run"] && !cmd!.writes) usageError(`${name} does not write, so --dry-run does not apply`, `agentproof-kit ${name} --help`);
     const place: Place = { ...(values.global ? userPlace() : placeOf(values.dir ?? process.cwd())), dryRun: !!values["dry-run"] };
     const out = cmd!.run(place, args, values);
     result.changes = (out.changed ?? []).map((c) => (c.startsWith("- ") ? { path: c.slice(2), action: "delete" } : { path: c, action: "write" }));

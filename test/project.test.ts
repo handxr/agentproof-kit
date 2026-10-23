@@ -100,8 +100,8 @@ test("AGENTS.md keeps hand-written text outside the markers", () => {
   update(project);
   update(project);
   const text = readFileSync(join(project, "AGENTS.md"), "utf8");
-  assert.ok(text.startsWith("# Mine\n\nKeep me.\n\n<!-- agent-kit:start -->"));
-  assert.equal(text.split("<!-- agent-kit:start -->").length, 2);
+  assert.ok(text.startsWith("# Mine\n\nKeep me.\n\n<!-- agentproof-kit:start -->"));
+  assert.equal(text.split("<!-- agentproof-kit:start -->").length, 2);
 });
 
 test("mcp pieces reject env values", () => {
@@ -113,7 +113,7 @@ test("git registry: update pins a commit, sync stays on it", () => {
   const git = (...a: string[]) => execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@t", ...a], { cwd: registry, stdio: "pipe" }).toString().trim();
   git("init", "-q", "-b", "main"); git("add", "."); git("commit", "-qm", "v1");
   const v1 = git("rev-parse", "HEAD");
-  process.env.AGENT_KIT_CACHE = join(root, "cache");
+  process.env.AGENTPROOF_KIT_CACHE = join(root, "cache");
   writeJson(join(project, "agents.json"), { ...JSON.parse(readFileSync(join(project, "agents.json"), "utf8")), registry: `git:${registry}#main` });
   update(project);
   assert.equal(JSON.parse(readFileSync(join(project, "agents.lock"), "utf8")).registry.commit, v1);

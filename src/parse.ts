@@ -32,9 +32,9 @@ export const isPieceType = (v: string): v is PieceType => (PIECE_TYPES as readon
 export function parsePieceKey(raw: string): PieceKey {
   const [type, name, extra] = raw.split("/");
   if (type === undefined || name === undefined || extra !== undefined || !isPieceType(type)) {
-    throw new ParseError(`"${raw}": expected <type>/<id> with type one of ${PIECE_TYPES.join(", ")}`, "invalid-piece-key", "agent-kit list");
+    throw new ParseError(`"${raw}": expected <type>/<id> with type one of ${PIECE_TYPES.join(", ")}`, "invalid-piece-key", "agentproof-kit list");
   }
-  if (!ID.test(name)) throw new ParseError(`"${raw}": invalid id "${name}"`, "invalid-piece-key", "agent-kit list");
+  if (!ID.test(name)) throw new ParseError(`"${raw}": invalid id "${name}"`, "invalid-piece-key", "agentproof-kit list");
   return raw as PieceKey;
 }
 

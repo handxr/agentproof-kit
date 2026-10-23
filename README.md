@@ -1,12 +1,12 @@
-# agent-kit
+# agentproof-kit
 
-agent-kit installs agent configuration from a shared registry into a project, for Cursor, Claude Code, and Codex. A registry holds skills, MCP servers, rules, commands, subagents, hooks, and permissions. A project lists the presets and pieces it wants in `agents.json`. agent-kit writes each target's native files and records what it wrote in `agents.lock`.
+agentproof-kit installs agent configuration from a shared registry into a project, for Cursor, Claude Code, and Codex. A registry holds skills, MCP servers, rules, commands, subagents, hooks, and permissions. A project lists the presets and pieces it wants in `agents.json`. agentproof-kit writes each target's native files and records what it wrote in `agents.lock`.
 
-**This repo is a template, not a package.** There is no `agent-kit` on npm, and none will be published from here. Fork it, rename it, and publish the CLI to your company's private npm registry, pointed at your own config registry. [Fork agent-kit for your team](docs/forking.md) walks through it.
+**This repo is a template, not a package.** There is no `agentproof-kit` on npm, and none will be published from here. Fork it, rename it, and publish the CLI to your company's private npm registry, pointed at your own config registry. [Fork agentproof-kit for your team](docs/forking.md) walks through it.
 
 ## Try it
 
-agent-kit needs Node 24 or later, which runs the TypeScript sources directly. These commands run the CLI from source against the example registry, with nothing published:
+agentproof-kit needs Node 24 or later, which runs the TypeScript sources directly. These commands run the CLI from source against the example registry, with nothing published:
 
 ```sh
 npm install
@@ -21,9 +21,9 @@ GITHUB_PERSONAL_ACCESS_TOKEN=x CONTEXT7_API_KEY=y node ../../src/cli.ts check
 
 | Command | What it does |
 | --- | --- |
-| `init --registry <src> [--preset <id>] [--target <t>] [--no-skill]` | Writes `agents.json`, then runs `update`. Adds the `skills/agent-kit` skill when the registry has it. |
+| `init --registry <src> [--preset <id>] [--target <t>] [--no-skill]` | Writes `agents.json`, then runs `update`. Adds the `skills/agentproof-kit` skill when the registry has it. |
 | `add <type>/<id>...` | Adds pieces to `agents.json`, then runs `update`. |
-| `remove <type>/<id>...` | Removes pieces from `agents.json`, then runs `update`. Deletes only the files and entries agent-kit wrote. |
+| `remove <type>/<id>...` | Removes pieces from `agents.json`, then runs `update`. Deletes only the files and entries agentproof-kit wrote. |
 | `update` | Reads the newest registry content, rewrites `agents.lock`, and rewrites the generated files. |
 | `sync` | Makes the generated files match `agents.lock`. It never moves to newer registry content. |
 | `check` | Exits 1 if a generated file or an owned entry in a shared file was edited, the lock is out of date, or an MCP env var is unset. A piece a target cannot install is a warning. |
@@ -34,14 +34,14 @@ Every command takes `--dir <path>` (default: the current directory), `--global`,
 
 ## Use it from an agent
 
-agent-kit never prompts. With `--json`, each command prints one object with `ok`, `changes`, `problems` and `warnings`. Each problem has a stable `code` and a `fix` with the command to run. The exit code is 0 when ok, 1 on problems and 2 on a usage error:
+agentproof-kit never prompts. With `--json`, each command prints one object with `ok`, `changes`, `problems` and `warnings`. Each problem has a stable `code` and a `fix` with the command to run. The exit code is 0 when ok, 1 on problems and 2 on a usage error:
 
 ```sh
-$ agent-kit add rules/reakt --json
-{ "ok": false, "problems": [{ "code": "unknown-piece", "message": "not in registry: rules/reakt (did you mean rules/react?)", "fix": "agent-kit list" }], ... }
+$ agentproof-kit add rules/reakt --json
+{ "ok": false, "problems": [{ "code": "unknown-piece", "message": "not in registry: rules/reakt (did you mean rules/react?)", "fix": "agentproof-kit list" }], ... }
 ```
 
-`init` installs the [`agent-kit` skill](examples/registry/skills/agent-kit/SKILL.md), which teaches an agent this flow. [The CLI reference](docs/cli.md) lists every key, problem code and exit code. [Decision 12](docs/decisions/12-agent-first-cli.md) explains why.
+`init` installs the [`agentproof-kit` skill](examples/registry/skills/agentproof-kit/SKILL.md), which teaches an agent this flow. [The CLI reference](docs/cli.md) lists every key, problem code and exit code. [Decision 12](docs/decisions/12-agent-first-cli.md) explains why.
 
 `sync` and `check` load the registry at the commit in `agents.lock`. If the registry content at that commit no longer matches a piece's hash, both commands fail and tell you to run `update`. Run `sync` after a pull, and `update` when you want new pieces.
 
@@ -59,15 +59,15 @@ $ agent-kit add rules/reakt --json
 }
 ```
 
-`registry` is a path relative to the project, `github:<org>/<repo>#<ref>`, or `git:<url>#<ref>`. agent-kit clones git registries into `~/.cache/agent-kit`.
+`registry` is a path relative to the project, `github:<org>/<repo>#<ref>`, or `git:<url>#<ref>`. agentproof-kit clones git registries into `~/.cache/agentproof-kit`.
 
-agent-kit resolves presets first, parents before children. It then adds `add` and drops `remove`.
+agentproof-kit resolves presets first, parents before children. It then adds `add` and drops `remove`.
 
-`agents.lock` records the registry commit, each piece's version and content hash, and the hash of every file agent-kit writes whole. `update` deletes files that the old lock listed and the new one does not.
+`agents.lock` records the registry commit, each piece's version and content hash, and the hash of every file agentproof-kit writes whole. `update` deletes files that the old lock listed and the new one does not.
 
-Some files are shared with the user: `.mcp.json`, `.cursor/mcp.json`, `.cursor/hooks.json`, `.cursor/cli.json`, `.claude/settings.json`, `.codex/hooks.json`, and `.codex/config.toml`. In these, agent-kit manages only its own entries, such as one MCP server or one permission rule, and records them under `owned` in `agents.lock`. Entries you add by hand stay. An entry of yours with the same name as one agent-kit wants to write stops `update` with an error that names it.
+Some files are shared with the user: `.mcp.json`, `.cursor/mcp.json`, `.cursor/hooks.json`, `.cursor/cli.json`, `.claude/settings.json`, `.codex/hooks.json`, and `.codex/config.toml`. In these, agentproof-kit manages only its own entries, such as one MCP server or one permission rule, and records them under `owned` in `agents.lock`. Entries you add by hand stay. An entry of yours with the same name as one agentproof-kit wants to write stops `update` with an error that names it.
 
-`AGENTS.md` gets a section between `<!-- agent-kit:start -->` and `<!-- agent-kit:end -->`. agent-kit replaces only that section. Rules for every target live there. Codex and Cursor read `AGENTS.md` directly. For Claude Code, agent-kit makes sure `CLAUDE.md` has a line `@AGENTS.md` and leaves the rest of that file alone.
+`AGENTS.md` gets a section between `<!-- agentproof-kit:start -->` and `<!-- agentproof-kit:end -->`. agentproof-kit replaces only that section. Rules for every target live there. Codex and Cursor read `AGENTS.md` directly. For Claude Code, agentproof-kit makes sure `CLAUDE.md` has a line `@AGENTS.md` and leaves the rest of that file alone.
 
 Skills are written once, to `.agents/skills/<id>/`. When `claude` is a target, `.claude/skills/<id>` is a symlink to that copy, because Claude Code reads only `.claude/skills/`. Your own skills in `.claude/skills/` stay.
 
@@ -90,7 +90,7 @@ permissions/<id>.json         {"allow": [...], "ask": [...], "deny": [...]} shel
 presets/<id>.json             {"extends": [...], "skills": [...], "mcp": [...], ...}
 ```
 
-MCP files list environment variable names, never values. agent-kit writes each target's own reference syntax, such as `${env:NAME}` for Cursor and `${NAME}` for Claude Code.
+MCP files list environment variable names, never values. agentproof-kit writes each target's own reference syntax, such as `${env:NAME}` for Cursor and `${NAME}` for Claude Code.
 
 ## Presets
 
@@ -104,7 +104,7 @@ A preset is a named list of pieces. A preset can `extend` others, so a team keep
 { "extends": ["base"], "skills": ["react-component"], "mcp": ["context7"], "rules": ["react"] }
 ```
 
-A project with `"presets": ["frontend"]` gets both skills, both MCP servers, and every rule and hook from both presets. A piece listed twice is installed once. agent-kit rejects a preset that extends itself, directly or through another preset.
+A project with `"presets": ["frontend"]` gets both skills, both MCP servers, and every rule and hook from both presets. A piece listed twice is installed once. agentproof-kit rejects a preset that extends itself, directly or through another preset.
 
 [`examples/registry`](examples/registry) has these two presets with every piece they name.
 
@@ -113,12 +113,12 @@ A project with `"presets": ["frontend"]` gets both skills, both MCP servers, and
 `--global` installs pieces for your user instead of a project. It works with every command:
 
 ```sh
-agent-kit init --global --registry ~/src/my-registry --preset base
-agent-kit add --global mcp/github
-agent-kit check --global
+agentproof-kit init --global --registry ~/src/my-registry --preset base
+agentproof-kit add --global mcp/github
+agentproof-kit check --global
 ```
 
-`agents.json` and `agents.lock` live in `$XDG_CONFIG_HOME/agent-kit` (default `~/.config/agent-kit`). Files go under your home directory: skills in `~/.agents/skills` (linked from `~/.claude/skills`), MCP servers in `~/.claude.json`, `~/.codex/config.toml` and `~/.cursor/mcp.json`, and rules in `~/.claude/CLAUDE.md` and `~/.codex/AGENTS.md`, and Claude commands in `~/.claude/commands`. agent-kit changes only its own entries in these shared files.
+`agents.json` and `agents.lock` live in `$XDG_CONFIG_HOME/agentproof-kit` (default `~/.config/agentproof-kit`). Files go under your home directory: skills in `~/.agents/skills` (linked from `~/.claude/skills`), MCP servers in `~/.claude.json`, `~/.codex/config.toml` and `~/.cursor/mcp.json`, and rules in `~/.claude/CLAUDE.md` and `~/.codex/AGENTS.md`, and Claude commands in `~/.claude/commands`. agentproof-kit changes only its own entries in these shared files.
 
 Cursor user rules and Cursor and Codex commands have no documented user location, so `check --global` prints an `unsupported` warning for them. In both scopes, unsupported pieces are warnings and do not change the exit code. In a project, `check` warns about any piece installed both globally and in that project. [Decision 11](docs/decisions/11-global-install.md) lists every path and its source.
 
@@ -166,11 +166,11 @@ npm run smoke
 
 ## Known limitations
 
-[Decision 10](docs/decisions/10-known-limitations.md) lists the edge cases agent-kit accepts: shared JSON files are reformatted when an owned entry changes, v1 lockfiles are rejected, an identical hand-written entry is adopted, and dotted TOML keys outside a table are not seen.
+[Decision 10](docs/decisions/10-known-limitations.md) lists the edge cases agentproof-kit accepts: shared JSON files are reformatted when an owned entry changes, v1 lockfiles are rejected, an identical hand-written entry is adopted, and dotted TOML keys outside a table are not seen.
 
 ## Name
 
-`agent-kit` is a working name. [Rename it](docs/forking.md#rename-the-cli) in your fork.
+Forks usually rename the CLI. See [Fork and rename](docs/forking.md#1-fork-and-rename).
 
 ## License
 

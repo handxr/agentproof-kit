@@ -26,7 +26,7 @@ const git = (cwd: string, ...args: string[]): string => execFileSync("git", args
  * `pin` null: fetch the ref and use its newest commit (update).
  */
 function checkout(url: string, ref: string, pin: string | null): { root: string; commit: string } {
-  const cache = process.env.AGENT_KIT_CACHE ?? join(homedir(), ".cache", "agent-kit");
+  const cache = process.env.AGENTPROOF_KIT_CACHE ?? join(homedir(), ".cache", "agentproof-kit");
   const root = join(cache, createHash("sha256").update(url).digest("hex").slice(0, 16));
   if (!existsSync(join(root, ".git"))) {
     mkdirSync(cache, { recursive: true });
@@ -97,7 +97,7 @@ const walk = (dir: string): string[] =>
 
 export function loadPiece(reg: Registry, key: PieceKey): Piece {
   const meta = reg.index.get(key);
-  if (!meta) throw new ParseError(`${key}: not in registry ${reg.source}${hint(key, [...reg.index.keys()])}`, "unknown-piece", "agent-kit list");
+  if (!meta) throw new ParseError(`${key}: not in registry ${reg.source}${hint(key, [...reg.index.keys()])}`, "unknown-piece", "agentproof-kit list");
   const { type, id } = splitKey(key);
   const paths = pieceFiles(reg.root, key);
   const read = (p: string) => readFileSync(join(reg.root, p), "utf8");

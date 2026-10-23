@@ -1,5 +1,5 @@
 {
-  "name": "agent-kit",
+  "name": "agentproof-kit",
   "version": "0.0.0",
   "private": true,
   "description": "Reference CLI that installs skills, MCP servers, rules, commands, subagents, hooks and permissions from a registry into Cursor, Claude Code and Codex.",
@@ -9,10 +9,10 @@
     "node": ">=24"
   },
   "bin": {
-    "agent-kit": "./dist/cli.js"
+    "agentproof-kit": "./dist/cli.js"
   },
   "scripts": {
-    "agent-kit": "node src/cli.ts",
+    "agentproof-kit": "node src/cli.ts",
     "build": "tsc -p tsconfig.build.json",
     "prepack": "npm run build",
     "test": "node --test test/*.test.ts",

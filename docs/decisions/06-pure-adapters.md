@@ -2,7 +2,7 @@
 
 ## Context
 
-Each agent stores its configuration in its own layout, and those layouts change every few months. Forks add targets that agent-kit does not ship.
+Each agent stores its configuration in its own layout, and those layouts change every few months. Forks add targets that agentproof-kit does not ship.
 
 ## Decision
 
@@ -14,7 +14,7 @@ An adapter is an object in `src/adapters/`. It has a `target`, the set of piece 
 
 - Add a target with a new file in `src/adapters/`, an entry in `ADAPTERS` in `src/adapters/index.ts`, and a name in `TARGETS` in `src/types.ts`.
 - Change one adapter's output when its agent changes format. Record the source in `docs/formats.md`.
-- Return a shared file as a list of owned entries instead of whole content. See [in shared files, agent-kit owns only its entries](07-merge-owned-keys.md).
+- Return a shared file as a list of owned entries instead of whole content. See [in shared files, agentproof-kit owns only its entries](07-merge-owned-keys.md).
 
 ## What breaks if you change it
 
