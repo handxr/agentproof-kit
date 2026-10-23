@@ -11,21 +11,37 @@ const pointer = (path: readonly string[]) => `/${path.join("/")}`;
 /** The id recorded in agents.lock. Items carry their value so a later run can find and remove them. */
 export function entryId(file: MergedFile, i: number): string {
   if (file.kind === "toml") return `[${[...file.tables.keys()][i]}]`;
+  if (file.kind === "lines") return `line:${file.lines[i]}`;
   const e = file.entries[i]!;
   return e.kind === "item" ? `${pointer(e.path)}[]${JSON.stringify(e.value)}` : e.kind === "default" ? `?${pointer(e.path)}` : pointer(e.path);
 }
 export const ownedIds = (file: MergedFile): string[] =>
-  Array.from({ length: file.kind === "toml" ? file.tables.size : file.entries.length }, (_, i) => entryId(file, i));
+  Array.from({ length: file.kind === "toml" ? file.tables.size : file.kind === "lines" ? file.lines.length : file.entries.length }, (_, i) => entryId(file, i));
 
 export type MergeResult = { content: string | null; drift: string[] };
 
 /** content null means the file should not exist. drift lists owned entries whose current value differs. */
 export function merge(path: string, current: string | null, file: MergedFile, previous: readonly string[]): MergeResult {
+  if (file.kind === "lines") return mergeLines(current, file.lines, previous);
   return file.kind === "json" ? mergeJson(path, current, file.entries, previous) : mergeToml(path, current, file.tables, previous);
 }
 
 /** Removal only: the file no longer has wanted entries. */
-export const emptyLike = (path: string): MergedFile => (path.endsWith(".toml") ? { kind: "toml", tables: new Map() } : { kind: "json", entries: [] });
+export const emptyLike = (path: string): MergedFile =>
+  path.endsWith(".toml") ? { kind: "toml", tables: new Map() } : path.endsWith(".json") ? { kind: "json", entries: [] } : { kind: "lines", lines: [] };
+
+/** Owned lines are appended if absent and removed when no longer wanted. Every other line stays byte for byte. */
+function mergeLines(current: string | null, lines: readonly string[], previous: readonly string[]): MergeResult {
+  const drift: string[] = [];
+  const stale = new Set(previous.filter((id) => !lines.includes(id.slice(5))).map((id) => id.slice(5)));
+  const kept = (current ?? "").split("\n").filter((l) => !stale.has(l.trim()));
+  const missing = lines.filter((l) => !kept.some((k) => k.trim() === l));
+  for (const l of missing) if (current !== null && previous.includes(`line:${l}`)) drift.push(`line "${l}" missing`);
+  let text = kept.join("\n").replace(/\n+$/, "");
+  if (missing.length) text = text ? `${text}\n\n${missing.join("\n")}` : missing.join("\n");
+  if (text.trim() === "") return { content: null, drift };
+  return { content: current !== null && text === current.replace(/\n+$/, "") ? current : `${text}\n`, drift };
+}
 
 function parent(root: Obj, path: readonly string[], where: string, create: boolean): Obj | null {
   let o: Obj = root;

@@ -1,23 +1,30 @@
-# Each skill is written once per directory
+# Each skill is written once, to `.agents/skills`
 
 ## Context
 
-Agents read skills from different project directories. Cursor reads `.agents/skills/` and also `.claude/skills/`. Claude Code reads `.claude/skills/`. Codex reads `.agents/skills/`. If agent-kit wrote one copy for each target, Cursor in a project that also targets Claude Code would list every skill twice. The sources are in [docs/formats.md](../formats.md#one-copy-of-each-skill).
+Most agents now read project skills from `.agents/skills/`: Cursor, Codex, pi, Copilot in VS Code, Gemini CLI, OpenCode and Windsurf. Claude Code reads only `.claude/skills/`, and its docs say symlinked skill folders work. The sources are in [docs/formats.md](../formats.md#one-copy-of-each-skill).
+
+The previous design had each adapter declare `skillDirs` and picked the fewest directories covering every target. With all three targets that still meant two real copies, which could drift apart and which Cursor listed twice.
 
 ## Decision
 
-Each adapter declares the directories it reads in `skillDirs`, with its preferred one first. `skillDirs()` in `src/project.ts` picks the fewest directories that cover every target. Targets with fewer choices pick first. With Cursor and Claude Code, skills go only to `.claude/skills/`. With Codex in the mix, `.agents/skills/` is also written, because Codex does not read `.claude/skills/`.
+`render` in `src/project.ts` writes every skill once, to `.agents/skills/<id>/`. When `claude` is a target, the Claude adapter returns one `link` file per skill: `.claude/skills/<id>` pointing at `../../.agents/skills/<id>`. The link is relative, so it survives a clone to any path.
+
+Links are recorded in `agents.lock` under `files` as `link:<target>`. `check` reports a link that is missing, replaced by a real folder, or pointing elsewhere. `sync` restores it. `update` deletes links for skills that left the manifest, or all of them when `claude` leaves `targets`. A folder of yours with the same name in `.claude/skills/` stops `update` before anything is written.
+
+Per-skill links, not one link for the whole `.claude/skills/` directory, so your hand-written skills keep living there.
 
 ## What you can safely change
 
-- Add a directory to a target's `skillDirs` when its docs say it reads one. The picker uses it with no other change.
-- Change a target's preferred directory by reordering its list.
+- Point a new target at `.agents/skills/` by doing nothing: it is always written.
+- For a target that reads only its own directory, return a `link` per skill from its adapter, as Claude does.
 
 ## What breaks if you change it
 
-- If you list a directory that the agent does not read, `check` passes and the agent has no skills.
-- If adapters write skills themselves again, the duplicates come back in Cursor.
+- If you write a real copy into `.claude/skills/` again, the two copies can drift and Cursor sees two different skills with one name.
+- An absolute link target breaks for everyone who clones the repo somewhere else.
+- On Windows, git checks symlinks out as plain text files unless `core.symlinks` is on. Claude then sees no skill there. `check` reports it as drift and `sync` restores the link.
 
 ## Known limits
 
-With Cursor, Claude Code, and Codex all targeted, no single directory covers every target, so Cursor sees two copies of each skill. The Cursor docs do not say whether it merges skills with the same name.
+Unconfirmed: Cursor reads `.claude/skills/` too, so with `claude` targeted it may still list each skill twice through the symlink. The Cursor docs do not say whether it resolves symlinks or merges skills with the same name. `scripts/try-local.sh` asks each logged-in CLI to name its skills, which would show a duplicate.

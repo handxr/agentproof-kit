@@ -6,7 +6,7 @@ Each agent stores its configuration in its own layout, and those layouts change 
 
 ## Decision
 
-An adapter is an object in `src/adapters/`. It has a `target`, the set of piece types it `supports`, the `skillDirs` it reads, and a `render` function. `render` takes parsed pieces and returns files, an `AGENTS.md` section, unsupported pieces, and warnings. It never reads or writes the disk.
+An adapter is an object in `src/adapters/`. It has a `target`, the set of piece types it `supports`, and a `render` function. `render` takes parsed pieces and returns files, an `AGENTS.md` section, unsupported pieces, and warnings. It never reads or writes the disk.
 
 `src/project.ts` owns all disk access. It merges the output of every adapter, checks that two targets agree on any path they share, and writes only what changed.
 

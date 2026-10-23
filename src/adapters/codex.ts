@@ -10,7 +10,6 @@ const DECISION = { allow: "allow", ask: "prompt", deny: "forbidden" } as const;
 export const codex: Adapter = {
   target: "codex",
   supports,
-  skillDirs: [".agents/skills"],
   render(pieces) {
     const files: Array<[string, GeneratedFile]> = [];
     const unsupported = unsupportedTypes(pieces, supports, "codex");

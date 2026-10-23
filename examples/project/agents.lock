@@ -58,13 +58,8 @@
     ".agents/skills/react-component/templates/Component.tsx": "sha256-bTgGTacbefKDRuNhCgNQgliOJypHCQD6EoBdCXmDWC0=",
     ".claude/agents/explorer.md": "sha256-c2eLasZ7vKggSeOEJVWU6Q7KA7V8SS1eDO2344y8jUw=",
     ".claude/hooks/block-force-push.sh": "sha256-ro5a7vdHkYT7DRwP+fcO9RDlizJ65y0w/Od0F1Q9vLY=",
-    ".claude/rules/conventional-commits.md": "sha256-c3NzU5I3NAHgJvg866PnyGdsPZuCto0EDnC8gLCMCWU=",
-    ".claude/rules/react.md": "sha256-/ZxMT2QxIe2SVli3hn9o2IoJJyiZg06u7TXLgM20OtY=",
-    ".claude/rules/typescript-strict.md": "sha256-Lrgn9rtMTzJdnBY1WzRwOZO6aPdbHp0k18161APGtT8=",
-    ".claude/skills/code-review/checklist.md": "sha256-pEApU/9RIOYkgSvw6Bssz5pX0CilEQFjLhrNgEU9Cbs=",
-    ".claude/skills/code-review/SKILL.md": "sha256-d4QLWQ5NXiuuh7OU4IjkfHYKro2NpyqO6VOrgGMTMww=",
-    ".claude/skills/react-component/SKILL.md": "sha256-k3z7vUrPKen6VRSBZ0yAhTnQrUhVnkl1i3jAmzg+Hf4=",
-    ".claude/skills/react-component/templates/Component.tsx": "sha256-bTgGTacbefKDRuNhCgNQgliOJypHCQD6EoBdCXmDWC0=",
+    ".claude/skills/code-review": "link:../../.agents/skills/code-review",
+    ".claude/skills/react-component": "link:../../.agents/skills/react-component",
     ".codex/agents/explorer.toml": "sha256-10IyFU1KoWmddMivKGLdYAd/Tm7//NMQ9zMP8DoTAok=",
     ".codex/hooks/block-force-push.sh": "sha256-ro5a7vdHkYT7DRwP+fcO9RDlizJ65y0w/Od0F1Q9vLY=",
     ".codex/rules/agent-kit.rules": "sha256-2xWRmgH7n8lEpJkKjmPJmuUvwP8jnsNLd1xXUAhjtUA=",
@@ -106,6 +101,9 @@
     ".mcp.json": [
       "/mcpServers/context7",
       "/mcpServers/github"
+    ],
+    "CLAUDE.md": [
+      "line:@AGENTS.md"
     ]
   }
 }

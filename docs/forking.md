@@ -24,7 +24,7 @@ Commit `agents.json`, `agents.lock`, `AGENTS.md`, and the generated files. Run `
 
 ## Add a target
 
-1. Write `src/adapters/<target>.ts`. Export an `Adapter` with the piece types it supports, the skill directories it reads (`skillDirs`), and a `render` function. For a file that other tools also write, return owned entries instead of whole content.
+1. Write `src/adapters/<target>.ts`. Export an `Adapter` with the piece types it supports and a `render` function. Skills are written to `.agents/skills/` for every target. If your target reads only its own skill directory, return a `link` file per skill, as `src/adapters/claude.ts` does. For a file that other tools also write, return owned entries instead of whole content.
 2. Add the target to `TARGETS` in `src/types.ts` and to `ADAPTERS` in `src/adapters/index.ts`.
 3. Add the format and its source to `docs/formats.md`.
 

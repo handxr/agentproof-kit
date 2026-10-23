@@ -1,4 +1,4 @@
-import { cpSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { cpSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, readlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, relative } from "node:path";
 
@@ -22,13 +22,15 @@ export function writeJson(path: string, value: unknown) {
   writeFileSync(path, `${JSON.stringify(value, null, 2)}\n`);
 }
 
-/** path -> content for every file under dir. */
+/** path -> content for every file under dir. A symlink maps to "-> <target>" and is not followed. */
 export function snapshot(dir: string): Record<string, string> {
   const out: Record<string, string> = {};
   const walk = (d: string): void => {
     for (const n of readdirSync(d)) {
       const p = join(d, n);
-      if (statSync(p).isDirectory()) walk(p);
+      const st = lstatSync(p);
+      if (st.isSymbolicLink()) out[relative(dir, p)] = `-> ${readlinkSync(p)}`;
+      else if (st.isDirectory()) walk(p);
       else out[relative(dir, p)] = readFileSync(p, "utf8");
     }
   };

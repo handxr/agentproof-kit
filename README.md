@@ -55,9 +55,13 @@ agent-kit resolves presets first, parents before children. It then adds `add` an
 
 Some files are shared with the user: `.mcp.json`, `.cursor/mcp.json`, `.cursor/hooks.json`, `.cursor/cli.json`, `.claude/settings.json`, `.codex/hooks.json`, and `.codex/config.toml`. In these, agent-kit manages only its own entries, such as one MCP server or one permission rule, and records them under `owned` in `agents.lock`. Entries you add by hand stay. An entry of yours with the same name as one agent-kit wants to write stops `update` with an error that names it.
 
-`AGENTS.md` gets a section between `<!-- agent-kit:start -->` and `<!-- agent-kit:end -->`. agent-kit replaces only that section. Codex reads its rules from there.
+`AGENTS.md` gets a section between `<!-- agent-kit:start -->` and `<!-- agent-kit:end -->`. agent-kit replaces only that section. Rules for every target live there. Codex and Cursor read `AGENTS.md` directly. For Claude Code, agent-kit makes sure `CLAUDE.md` has a line `@AGENTS.md` and leaves the rest of that file alone.
 
-Commit `agents.json`, `agents.lock`, `AGENTS.md`, and the generated files. Then a teammate gets the setup from `git pull`, and CI can run `check`.
+Skills are written once, to `.agents/skills/<id>/`. When `claude` is a target, `.claude/skills/<id>` is a symlink to that copy, because Claude Code reads only `.claude/skills/`. Your own skills in `.claude/skills/` stay.
+
+Commit `agents.json`, `agents.lock`, `AGENTS.md`, and the generated files. Then a teammate gets the setup from `git pull`, and CI can run `check`. Git must keep symlinks (the default on macOS and Linux) for the `.claude/skills/` links.
+
+To try it on your machine with the agent CLIs you already use, run `bash scripts/try-local.sh`. See [Checked against the real CLIs](docs/formats.md#checked-against-the-real-clis).
 
 ## The registry
 
@@ -84,7 +88,7 @@ MCP files list environment variable names, never values. agent-kit writes each t
 | --- | --- | --- | --- |
 | skills | yes | yes | yes |
 | mcp | yes | yes | yes |
-| rules | yes | yes | in `AGENTS.md` |
+| rules | yes | in `AGENTS.md`, via `CLAUDE.md` | in `AGENTS.md` |
 | commands | yes | yes | no |
 | agents | yes | yes | yes |
 | hooks | yes | yes | `preShell` only |

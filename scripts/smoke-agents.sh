@@ -4,7 +4,10 @@
 # on this machine cannot leak in. Env values are dummies: we only test that names are wired.
 set -uo pipefail
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
-TMP=$(mktemp -d)
+# macOS has no `timeout`; perl's alarm does the same job. Resolve /var -> /private/var so Codex's trust key matches.
+command -v timeout >/dev/null || timeout() { local s=$1; shift; perl -e 'alarm shift; exec @ARGV' "$s" "$@"; }
+CURSOR=$(command -v cursor-agent || command -v "$HOME/.local/bin/cursor-agent" || command -v agent || true)
+TMP=$(cd "$(mktemp -d)" && pwd -P)
 trap 'rm -rf "$TMP"' EXIT
 cp -r "$ROOT/examples/registry" "$TMP/registry"
 mkdir "$TMP/project" && cd "$TMP/project" && git init -q
@@ -35,7 +38,7 @@ if command -v codex >/dev/null; then
   out=$(timeout 60 codex mcp list 2>&1 | grep -v '^WARNING')
   has "$out" "No MCP servers" && ok "untrusted project: .codex/ ignored, as documented" || bad "untrusted project loaded .codex/"
   # Documented trust key; the same entry Codex writes when you answer its trust prompt.
-  printf '[projects."%s"]\ntrust_level = "trusted"\n' "$PWD" > "$CODEX_HOME/config.toml"
+  printf '[projects."%s"]\ntrust_level = "trusted"\n' "$(pwd -P)" > "$CODEX_HOME/config.toml"
   out=$(timeout 60 codex mcp list 2>&1 | grep -v '^WARNING'); echo "$out" | sed 's/^/    /'
   servers "$out" "codex mcp list (.codex/config.toml, trusted)"
   has "$out" "GITHUB_PERSONAL_ACCESS_TOKEN" && ok "env_vars forwarded by name" || bad "env_vars not shown"
@@ -44,9 +47,9 @@ if command -v codex >/dev/null; then
   skip "skills, subagents, hooks, rules loaded by Codex: needs login (model call)"
 else bad "codex not installed"; fi
 
-echo "== Cursor CLI $(cursor-agent --version 2>/dev/null || echo 'not installed')"
-if command -v cursor-agent >/dev/null; then
-  out=$(HOME="$TMP/cursor-home" timeout 60 cursor-agent mcp list </dev/null 2>&1); echo "$out" | sed 's/^/    /'
+echo "== Cursor CLI $([ -n "$CURSOR" ] && "$CURSOR" --version 2>/dev/null || echo 'not installed')"
+if [ -n "$CURSOR" ]; then
+  out=$(HOME="$TMP/cursor-home" timeout 60 "$CURSOR" mcp list </dev/null 2>&1); echo "$out" | sed 's/^/    /'
   servers "$out" "cursor-agent mcp list (.cursor/mcp.json)"
   has "$out" "needs approval" && echo "  note: project MCP servers need approval (cursor-agent mcp enable <id> or --approve-mcps)"
   skip "skills, rules, subagents, hooks, permissions loaded by Cursor: needs login (model call)"

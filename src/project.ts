@@ -1,6 +1,6 @@
 // The project side: render pieces for each target, then make the disk match.
 import { createHash } from "node:crypto";
-import { chmodSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, readlinkSync, renameSync, rmdirSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { ADAPTERS } from "./adapters/index.ts";
 import { emptyLike, merge, ownedIds } from "./merge.ts";
@@ -23,19 +23,11 @@ export const readLock = (dir: string): Lock | null => (existsSync(join(dir, LOCK
 
 export type Rendered = { files: Map<string, GeneratedFile>; agentsMd: string; unsupported: string[]; warnings: string[] };
 
-/** Pure. Two targets may emit the same path only with identical content (for example .agents/skills). */
-/** The fewest skill directories that every target reads. Targets with the fewest choices pick first. */
-export function skillDirs(targets: readonly Target[]): string[] {
-  const chosen: string[] = [];
-  for (const t of [...targets].sort((a, b) => ADAPTERS[a].skillDirs.length - ADAPTERS[b].skillDirs.length)) {
-    const dirs = ADAPTERS[t].skillDirs;
-    if (!dirs.some((d) => chosen.includes(d))) chosen.push(dirs[0]!);
-  }
-  return chosen;
-}
+/** Pure. Skills are written once, to .agents/skills. Two targets may emit the same path only with identical content. */
+const SKILLS_DIR = ".agents/skills";
 
 export function render(pieces: readonly Piece[], targets: readonly Target[]): Rendered {
-  const files = new Map<string, GeneratedFile>(skillDirs(targets).flatMap((d) => skillFiles(pieces, d)));
+  const files = new Map<string, GeneratedFile>(skillFiles(pieces, SKILLS_DIR));
   const sections = new Set<string>();
   const unsupported: string[] = [];
   const warnings: string[] = [];
@@ -56,7 +48,8 @@ export function render(pieces: readonly Piece[], targets: readonly Target[]): Re
 }
 
 const mapJson = (_k: string, v: unknown) => (v instanceof Map ? [...v] : v);
-const isMerged = (f: GeneratedFile): f is MergedFile => f.kind !== "whole";
+const isMerged = (f: GeneratedFile): f is MergedFile => f.kind === "json" || f.kind === "toml" || f.kind === "lines";
+const fileHash = (f: GeneratedFile) => (f.kind === "whole" ? sha(f.content) : f.kind === "link" ? `link:${f.target}` : null);
 const sorted = <T>(entries: Iterable<[string, T]>) => [...entries].sort(([a], [b]) => a.localeCompare(b));
 
 export function lockFor(reg: Registry, targets: readonly Target[], pieces: readonly Piece[], r: Rendered): Lock {
@@ -65,7 +58,7 @@ export function lockFor(reg: Registry, targets: readonly Target[], pieces: reado
     registry: { source: reg.source, commit: reg.commit },
     targets,
     pieces: Object.fromEntries(pieces.map((p) => [p.key, { version: p.version, hash: p.hash }])),
-    files: Object.fromEntries(sorted(r.files).flatMap(([path, f]) => (f.kind === "whole" ? [[path, sha(f.content)]] : []))),
+    files: Object.fromEntries(sorted(r.files).flatMap(([path, f]) => { const h = fileHash(f); return h ? [[path, h]] : []; })),
     owned: Object.fromEntries(sorted(r.files).flatMap(([path, f]) => (isMerged(f) ? [[path, ownedIds(f)]] : []))),
   };
 }
@@ -105,17 +98,54 @@ function writeIfChanged(dir: string, path: string, content: string, executable =
   return true;
 }
 
+const lexists = (abs: string) => { try { lstatSync(abs); return true; } catch { return false; } };
+const linkAt = (abs: string) => (lexists(abs) && lstatSync(abs).isSymbolicLink() ? readlinkSync(abs) : null);
+
+/** Remove a path and any parent directories it leaves empty, up to the project root. */
+function remove(dir: string, path: string) {
+  rmSync(join(dir, path), { force: true });
+  for (let d = dirname(path); d !== "."; d = dirname(d)) {
+    const abs = join(dir, d);
+    if (!existsSync(abs) || readdirSync(abs).length) return;
+    rmdirSync(abs);
+  }
+}
+
+/** A link may replace nothing, its own old link, or an empty directory. Anything else is the user's. */
+function linkClash(dir: string, path: string, target: string, previous: Lock | null): string | null {
+  const abs = join(dir, path);
+  if (!lexists(abs) || linkAt(abs) !== null) return null;
+  const st = lstatSync(abs);
+  const ours = (p: string) => p in (previous?.files ?? {});
+  if (st.isDirectory() && readdirSync(abs, { recursive: true }).every((n) => ours(join(path, String(n))) || statSync(join(abs, String(n))).isDirectory())) return null;
+  return `${path}: already exists and agent-kit did not write it (wanted a link to ${target}). Rename it, or drop the piece from agents.json.`;
+}
+
+function writeLink(dir: string, path: string, target: string): boolean {
+  const abs = join(dir, path);
+  if (linkAt(abs) === target) return false;
+  if (lexists(abs)) rmSync(abs, { recursive: true, force: true });
+  mkdirSync(dirname(abs), { recursive: true });
+  symlinkSync(target, abs);
+  return true;
+}
+
 /** Derive the whole project state from (lock, rendered). Safe to run any number of times. */
 export function apply(dir: string, lock: Lock, r: Rendered, previous: Lock | null): string[] {
   const changed: string[] = [];
   // Merge first: a clash with a hand-written entry throws before anything is written.
   const merged = merges(dir, r, previous);
+  const clashes = [...r.files].flatMap(([path, f]) => (f.kind === "link" ? [linkClash(dir, path, f.target, previous)] : [])).filter((c) => c !== null);
+  if (clashes.length) throw new ParseError(clashes.join("\n"));
   for (const path of Object.keys(previous?.files ?? {})) {
-    if (!r.files.has(path) && existsSync(join(dir, path))) { rmSync(join(dir, path)); changed.push(`- ${path}`); }
+    if (!r.files.has(path) && lexists(join(dir, path))) { remove(dir, path); changed.push(`- ${path}`); }
   }
-  for (const [path, f] of r.files) if (f.kind === "whole" && writeIfChanged(dir, path, f.content, f.executable)) changed.push(path);
+  for (const [path, f] of r.files) {
+    if (f.kind === "whole" && writeIfChanged(dir, path, f.content, f.executable)) changed.push(path);
+    if (f.kind === "link" && writeLink(dir, path, f.target)) changed.push(path);
+  }
   for (const m of merged) {
-    if (m.content === null) { if (m.current !== null) { rmSync(join(dir, m.path)); changed.push(`- ${m.path}`); } }
+    if (m.content === null) { if (m.current !== null) { remove(dir, m.path); changed.push(`- ${m.path}`); } }
     else if (writeIfChanged(dir, m.path, m.content)) changed.push(m.path);
   }
   const agentsPath = join(dir, "AGENTS.md");
@@ -209,6 +239,12 @@ export function check(dir: string, env: NodeJS.ProcessEnv = process.env): CheckR
   // Drift: whole files must match what the lock renders. In shared files only the owned entries count.
   const r = render(pieces, lock.targets);
   for (const [path, f] of r.files) {
+    if (f.kind === "link") {
+      const at = linkAt(join(dir, path));
+      if (at === null) problems.push(lexists(join(dir, path)) ? `drift: ${path} is not a link to ${f.target}` : `drift: ${path} missing`);
+      else if (at !== f.target) problems.push(`drift: ${path} points to ${at}, not ${f.target}`);
+      continue;
+    }
     const current = readText(dir, path);
     if (current === null) problems.push(`drift: ${path} missing`);
     else if (f.kind === "whole" && current !== f.content) problems.push(`drift: ${path} edited`);

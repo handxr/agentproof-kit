@@ -9,7 +9,6 @@ const EVENTS = { preShell: "beforeShellExecution", postEdit: "afterFileEdit" } a
 export const cursor: Adapter = {
   target: "cursor",
   supports,
-  skillDirs: [".agents/skills", ".claude/skills"],
   render(pieces) {
     const files: Array<[string, GeneratedFile]> = [...plainMarkdown(pieces, "commands", ".cursor/commands")];
     const unsupported = unsupportedTypes(pieces, supports, "cursor");

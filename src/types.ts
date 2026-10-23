@@ -66,7 +66,7 @@ export type Lock = {
   readonly registry: { readonly source: string; readonly commit: string | null };
   readonly targets: readonly Target[];
   readonly pieces: Readonly<Record<string, { readonly version: string; readonly hash: string }>>;
-  /** Every file agent-kit writes whole, and its content hash, so stale files can be removed. */
+  /** Every file agent-kit writes whole, and its content hash, or `link:<target>` for a symlink, so stale ones can be removed. */
   readonly files: Readonly<Record<string, string>>;
   /** Shared files: the entries agent-kit wrote, so it can remove them later and leave the rest alone. */
   readonly owned: Readonly<Record<string, readonly string[]>>;
@@ -81,9 +81,15 @@ export type JsonEntry = { readonly kind: "key" | "item" | "default"; readonly pa
 /** A shared file: agent-kit owns some entries, the user owns everything else. TOML tables map header name -> full table text. */
 export type MergedFile =
   | { readonly kind: "json"; readonly entries: readonly JsonEntry[] }
-  | { readonly kind: "toml"; readonly tables: ReadonlyMap<string, string> };
+  | { readonly kind: "toml"; readonly tables: ReadonlyMap<string, string> }
+  /** Plain text: agent-kit owns whole lines, such as `@AGENTS.md` in CLAUDE.md. */
+  | { readonly kind: "lines"; readonly lines: readonly string[] };
 
-export type GeneratedFile = { readonly kind: "whole"; readonly content: string; readonly executable: boolean } | MergedFile;
+export type GeneratedFile =
+  | { readonly kind: "whole"; readonly content: string; readonly executable: boolean }
+  /** A relative symlink, stored as-is. agent-kit owns the link, not what it points to. */
+  | { readonly kind: "link"; readonly target: string }
+  | MergedFile;
 
 export type RenderResult = {
   readonly files: ReadonlyMap<string, GeneratedFile>;
@@ -98,7 +104,5 @@ export type RenderResult = {
 export type Adapter = {
   readonly target: Target;
   readonly supports: ReadonlySet<PieceType>;
-  /** Project skill directories this target reads, preferred first. Skills are written by `render` in project.ts, once per directory. */
-  readonly skillDirs: readonly string[];
   readonly render: (pieces: readonly Piece[]) => RenderResult;
 };

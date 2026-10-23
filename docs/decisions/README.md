@@ -9,4 +9,5 @@ Each file explains one decision in agent-kit. It gives the context, the decision
 5. [`check` separates errors from warnings](05-check-errors-vs-warnings.md)
 6. [Adapters are pure and declare what they support](06-pure-adapters.md)
 7. [In shared files, agent-kit owns only its entries](07-merge-owned-keys.md)
-8. [Each skill is written once per directory](08-one-skill-copy.md)
+8. [Each skill is written once, to `.agents/skills`](08-one-skill-copy.md)
+9. [Claude reads the rules through `@AGENTS.md`](09-claude-rules-via-agents-md.md)
