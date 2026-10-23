@@ -1,0 +1,1 @@
+{ "allow": ["git status", "git diff", "git log"], "ask": ["git push"], "deny": ["git push --force"] }

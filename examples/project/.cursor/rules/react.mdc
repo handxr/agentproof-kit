@@ -1,0 +1,6 @@
+---
+description: React component conventions
+globs: "src/components/**/*.tsx"
+alwaysApply: false
+---
+One component per file. Named exports only. Keep effects out of render paths.

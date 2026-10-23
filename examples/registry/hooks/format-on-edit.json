@@ -1,0 +1,1 @@
+{ "event": "postEdit", "script": "format-on-edit.sh" }

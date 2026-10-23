@@ -1,0 +1,9 @@
+{
+  "description": "Every repo: review skill, commit rules, GitHub MCP, explorer agent, git safety",
+  "skills": ["code-review"],
+  "mcp": ["github"],
+  "rules": ["conventional-commits", "typescript-strict"],
+  "agents": ["explorer"],
+  "hooks": ["block-force-push"],
+  "permissions": ["safe-git"]
+}

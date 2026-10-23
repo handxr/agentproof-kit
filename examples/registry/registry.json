@@ -1,0 +1,33 @@
+{
+  "name": "example-registry",
+  "skills": {
+    "code-review": { "version": "1.1.0", "description": "Review a diff for bugs, risk and missing tests" },
+    "react-component": { "version": "0.3.0", "description": "Scaffold a typed React component with a test" }
+  },
+  "mcp": {
+    "github": { "version": "1.0.0", "description": "GitHub MCP server (stdio)" },
+    "context7": { "version": "1.0.0", "description": "Library docs over HTTP" }
+  },
+  "rules": {
+    "conventional-commits": { "version": "1.0.0", "description": "Commit message format" },
+    "typescript-strict": { "version": "1.2.0", "description": "TypeScript conventions" },
+    "react": { "version": "1.0.0", "description": "React component conventions" }
+  },
+  "commands": {
+    "ship": { "version": "1.0.0", "description": "Test, commit and open a PR" }
+  },
+  "agents": {
+    "explorer": { "version": "1.0.0", "description": "Read-only codebase explorer" }
+  },
+  "hooks": {
+    "block-force-push": { "version": "1.0.0", "description": "Refuse git push --force" },
+    "format-on-edit": { "version": "1.0.0", "description": "Run prettier after an edit" }
+  },
+  "permissions": {
+    "safe-git": { "version": "1.0.0", "description": "Allow read-only git, ask before pushing" }
+  },
+  "presets": {
+    "base": {},
+    "frontend": {}
+  }
+}

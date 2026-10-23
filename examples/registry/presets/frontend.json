@@ -1,0 +1,8 @@
+{
+  "description": "Frontend repos: base plus React skill, rules, docs MCP and formatting",
+  "extends": ["base"],
+  "skills": ["react-component"],
+  "mcp": ["context7"],
+  "rules": ["react"],
+  "hooks": ["format-on-edit"]
+}

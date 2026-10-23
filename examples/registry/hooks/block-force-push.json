@@ -1,0 +1,1 @@
+{ "event": "preShell", "script": "block-force-push.sh" }

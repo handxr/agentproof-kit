@@ -1,0 +1,19 @@
+{
+  "name": "agent-kit",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Reference CLI that installs skills, MCP servers, rules, commands, subagents, hooks and permissions from a registry into Cursor, Claude Code and Codex.",
+  "license": "MIT",
+  "type": "module",
+  "engines": { "node": ">=24" },
+  "bin": { "agent-kit": "./src/cli.ts" },
+  "scripts": {
+    "agent-kit": "node src/cli.ts",
+    "test": "node --test test/*.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.0"
+  }
+}

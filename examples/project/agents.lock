@@ -1,0 +1,83 @@
+{
+  "lockfileVersion": 1,
+  "registry": {
+    "source": "../registry",
+    "commit": null
+  },
+  "targets": [
+    "cursor",
+    "claude",
+    "codex"
+  ],
+  "pieces": {
+    "agents/explorer": {
+      "version": "1.0.0",
+      "hash": "sha256-toLiFXXIdMevAfZVNwRhNB/5RmVDoC3ZEUDKnKXYH2Q="
+    },
+    "hooks/block-force-push": {
+      "version": "1.0.0",
+      "hash": "sha256-+6uAH6jqpdxoH7cGx82BDJQFVRe/cyR9KfNlJDYsWIo="
+    },
+    "mcp/context7": {
+      "version": "1.0.0",
+      "hash": "sha256-MxKTMxzQWKTmHyVGx2EEGfZ59fhnNcrPmAuzLCptmEE="
+    },
+    "mcp/github": {
+      "version": "1.0.0",
+      "hash": "sha256-sk+4pCOQ4D0/x4ugq7YocfLVflQtPSLOMGcO7uIXYhw="
+    },
+    "permissions/safe-git": {
+      "version": "1.0.0",
+      "hash": "sha256-JzldT1io+rym03jhz2hjs0ytsM2EdPoF1x793t8jTQE="
+    },
+    "rules/conventional-commits": {
+      "version": "1.0.0",
+      "hash": "sha256-rXfu8dC8PODatT6Z4lE1xB4LMUfFq2Jt0JJLU+g3xTw="
+    },
+    "rules/react": {
+      "version": "1.0.0",
+      "hash": "sha256-4DK97GahsKPp/nfFjMMY61tGdj6sHgGTYLOzg24u+3s="
+    },
+    "rules/typescript-strict": {
+      "version": "1.2.0",
+      "hash": "sha256-qq7zy7MHsCVe+m9euYKhA01Gp8EX8aSfn4dMrn1uf3s="
+    },
+    "skills/code-review": {
+      "version": "1.1.0",
+      "hash": "sha256-87dXlTV3lo7x2IpUd5uuMJ2aJnR7OaLEfuua7Q7ifl4="
+    },
+    "skills/react-component": {
+      "version": "0.3.0",
+      "hash": "sha256-7NTCjmVTDT/nEFOUFd+to0n2aEARwiXb5apLn8sYzPg="
+    }
+  },
+  "files": {
+    ".agents/skills/code-review/checklist.md": "sha256-pEApU/9RIOYkgSvw6Bssz5pX0CilEQFjLhrNgEU9Cbs=",
+    ".agents/skills/code-review/SKILL.md": "sha256-d4QLWQ5NXiuuh7OU4IjkfHYKro2NpyqO6VOrgGMTMww=",
+    ".agents/skills/react-component/SKILL.md": "sha256-k3z7vUrPKen6VRSBZ0yAhTnQrUhVnkl1i3jAmzg+Hf4=",
+    ".agents/skills/react-component/templates/Component.tsx": "sha256-bTgGTacbefKDRuNhCgNQgliOJypHCQD6EoBdCXmDWC0=",
+    ".claude/agents/explorer.md": "sha256-c2eLasZ7vKggSeOEJVWU6Q7KA7V8SS1eDO2344y8jUw=",
+    ".claude/hooks/block-force-push.sh": "sha256-ro5a7vdHkYT7DRwP+fcO9RDlizJ65y0w/Od0F1Q9vLY=",
+    ".claude/rules/conventional-commits.md": "sha256-c3NzU5I3NAHgJvg866PnyGdsPZuCto0EDnC8gLCMCWU=",
+    ".claude/rules/react.md": "sha256-/ZxMT2QxIe2SVli3hn9o2IoJJyiZg06u7TXLgM20OtY=",
+    ".claude/rules/typescript-strict.md": "sha256-Lrgn9rtMTzJdnBY1WzRwOZO6aPdbHp0k18161APGtT8=",
+    ".claude/settings.json": "sha256-XdPafdX6hvuoBU0v/Ne38PSmeNsYcurdFv2VFjbdChE=",
+    ".claude/skills/code-review/checklist.md": "sha256-pEApU/9RIOYkgSvw6Bssz5pX0CilEQFjLhrNgEU9Cbs=",
+    ".claude/skills/code-review/SKILL.md": "sha256-d4QLWQ5NXiuuh7OU4IjkfHYKro2NpyqO6VOrgGMTMww=",
+    ".claude/skills/react-component/SKILL.md": "sha256-k3z7vUrPKen6VRSBZ0yAhTnQrUhVnkl1i3jAmzg+Hf4=",
+    ".claude/skills/react-component/templates/Component.tsx": "sha256-bTgGTacbefKDRuNhCgNQgliOJypHCQD6EoBdCXmDWC0=",
+    ".codex/agents/explorer.toml": "sha256-10IyFU1KoWmddMivKGLdYAd/Tm7//NMQ9zMP8DoTAok=",
+    ".codex/config.toml": "sha256-7ABVciog7GS+GiapGqVRG7Q3U+QZSdtodeLZ+Hvdjh4=",
+    ".codex/hooks.json": "sha256-FX+ufvjuDx0WznsA/uroSIUcmvX7roA6VgyL/lUgxIQ=",
+    ".codex/hooks/block-force-push.sh": "sha256-ro5a7vdHkYT7DRwP+fcO9RDlizJ65y0w/Od0F1Q9vLY=",
+    ".codex/rules/agent-kit.rules": "sha256-2xWRmgH7n8lEpJkKjmPJmuUvwP8jnsNLd1xXUAhjtUA=",
+    ".cursor/agents/explorer.md": "sha256-OBkYGIonhrPDCAx+1leDPXSWnLrS8PwwOzIs32j/+DE=",
+    ".cursor/hooks.json": "sha256-tjsr4A4ddxtVl13e+au7OvfIasT1XC1USk7c6si12Ds=",
+    ".cursor/hooks/block-force-push.sh": "sha256-ro5a7vdHkYT7DRwP+fcO9RDlizJ65y0w/Od0F1Q9vLY=",
+    ".cursor/mcp.json": "sha256-8Jhm6V7DYpaCEEhY8vBvKndaK6abUR3kfz7b5XP4zEk=",
+    ".cursor/rules/conventional-commits.mdc": "sha256-XgKyVKv+yrtkKXIm4riH9drz3hRH2TABeSsCuWfLZpc=",
+    ".cursor/rules/react.mdc": "sha256-vGblk/J+4ovuw7xnqZpqPigb8TJryNvJtMRy5rqTlt8=",
+    ".cursor/rules/typescript-strict.mdc": "sha256-Cko6JDeNk80+0shGWBMHQBUNS1Z4UeLio1oX0VJJOu8=",
+    ".mcp.json": "sha256-AUcsqxQdvnMyVXxj/Ms4HApzQpsSVDmItQ6q05TDONs="
+  }
+}

@@ -1,0 +1,37 @@
+import { cpSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join, relative } from "node:path";
+
+export const EXAMPLE_REGISTRY = new URL("../examples/registry", import.meta.url).pathname;
+export const ENV = { GITHUB_PERSONAL_ACCESS_TOKEN: "x", CONTEXT7_API_KEY: "y" };
+
+/** A fresh copy of the example registry and a project next to it. */
+export function fixture(manifest: Record<string, unknown> = {}) {
+  const root = mkdtempSync(join(tmpdir(), "agent-kit-"));
+  const registry = join(root, "registry");
+  const project = join(root, "project");
+  cpSync(EXAMPLE_REGISTRY, registry, { recursive: true });
+  writeJson(join(project, "agents.json"), {
+    registry: "../registry", presets: ["frontend"], add: {}, remove: { hooks: ["format-on-edit"] }, targets: ["cursor", "claude", "codex"], ...manifest,
+  });
+  return { root, registry, project };
+}
+
+export function writeJson(path: string, value: unknown) {
+  mkdirSync(dirname(path), { recursive: true });
+  writeFileSync(path, `${JSON.stringify(value, null, 2)}\n`);
+}
+
+/** path -> content for every file under dir. */
+export function snapshot(dir: string): Record<string, string> {
+  const out: Record<string, string> = {};
+  const walk = (d: string): void => {
+    for (const n of readdirSync(d)) {
+      const p = join(d, n);
+      if (statSync(p).isDirectory()) walk(p);
+      else out[relative(dir, p)] = readFileSync(p, "utf8");
+    }
+  };
+  walk(dir);
+  return out;
+}
