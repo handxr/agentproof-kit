@@ -4,7 +4,7 @@ import { existsSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { parseArgs } from "node:util";
 import { ParseError, parsePieceKey, splitKey } from "./parse.ts";
-import { MANIFEST, check, readLock, readManifest, sync, update } from "./project.ts";
+import { add, check, init, readLock, readManifest, sync, update } from "./project.ts";
 import { loadPiece, loadRegistry } from "./registry.ts";
 
 const USAGE = `agent-kit <command> [options]
@@ -31,26 +31,11 @@ function main(argv: string[]): number {
 
   switch (cmd) {
     case "init": {
-      if (existsSync(join(dir, MANIFEST))) throw new ParseError(`${MANIFEST} already exists`);
       if (!values.registry) throw new ParseError("init needs --registry");
-      const manifest = { registry: values.registry, presets: values.preset ?? [], add: {}, remove: {}, targets: values.target ?? ["cursor", "claude", "codex"] };
-      writeFileSync(join(dir, MANIFEST), `${JSON.stringify(manifest, null, 2)}\n`);
-      readManifest(dir); // validate what we wrote
-      report(update(dir));
+      report(init(dir, { registry: values.registry, presets: values.preset ?? [], add: {}, remove: {}, targets: values.target ?? ["cursor", "claude", "codex"] }));
       return 0;
     }
-    case "add": {
-      const m = readManifest(dir);
-      const add: Record<string, string[]> = Object.fromEntries(Object.entries(m.add).map(([k, v]) => [k, [...v]]));
-      for (const raw of args) {
-        const { type, id } = splitKey(parsePieceKey(raw));
-        const list = (add[type] ??= []);
-        if (!list.includes(id)) list.push(id);
-      }
-      writeFileSync(join(dir, MANIFEST), `${JSON.stringify({ ...m, add }, null, 2)}\n`);
-      report(update(dir));
-      return 0;
-    }
+    case "add": report(add(dir, args)); return 0;
     case "update": report(update(dir)); return 0;
     case "sync": report(sync(dir)); return 0;
     case "check": {

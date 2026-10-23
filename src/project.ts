@@ -5,7 +5,7 @@ import { dirname, join } from "node:path";
 import { ADAPTERS } from "./adapters/index.ts";
 import { emptyLike, merge, ownedIds } from "./merge.ts";
 import { skillFiles } from "./adapters/shared.ts";
-import { ParseError, parseLock, parseManifest, parsePieceKey } from "./parse.ts";
+import { ParseError, parseLock, parseManifest, parsePieceKey, splitKey } from "./parse.ts";
 import { loadPiece, loadRegistry } from "./registry.ts";
 import { resolvePieces } from "./resolve.ts";
 import type { GeneratedFile, Lock, MergedFile, Manifest, Piece, Registry, Target } from "./types.ts";
@@ -127,7 +127,40 @@ export function apply(dir: string, lock: Lock, r: Rendered, previous: Lock | nul
 
 /** Re-resolve from the registry's newest content. Rewrites the lock and generated files. */
 export function update(dir: string): string[] {
-  const manifest = readManifest(dir);
+  return updateWith(dir, readManifest(dir));
+}
+
+/**
+ * Resolve and apply `manifest`, then write it to agents.json. The manifest is written last, so a
+ * failure (bad piece, clash with a hand-written entry) leaves the project exactly as it was.
+ */
+function updateWith(dir: string, raw: unknown): string[] {
+  const manifest = parseManifest(raw);
+  const changed = applyManifest(dir, manifest);
+  if (writeIfChanged(dir, MANIFEST, `${JSON.stringify(raw, null, 2)}\n`)) changed.unshift(MANIFEST);
+  return changed;
+}
+
+/** Create agents.json and the files it implies, or nothing at all. */
+export function init(dir: string, manifest: Record<string, unknown>): string[] {
+  if (existsSync(join(dir, MANIFEST))) throw new ParseError(`${MANIFEST} already exists`);
+  return updateWith(dir, manifest);
+}
+
+/** Add pieces to agents.json. The manifest changes only if the update succeeds. */
+export function add(dir: string, keys: readonly string[]): string[] {
+  const raw = readJson(join(dir, MANIFEST)) as Record<string, unknown>;
+  const m = parseManifest(raw);
+  const added: Record<string, string[]> = Object.fromEntries(Object.entries(m.add).map(([k, v]) => [k, [...v]]));
+  for (const k of keys) {
+    const { type, id } = splitKey(parsePieceKey(k));
+    const list = (added[type] ??= []);
+    if (!list.includes(id)) list.push(id);
+  }
+  return updateWith(dir, { ...raw, add: added });
+}
+
+function applyManifest(dir: string, manifest: Manifest): string[] {
   const reg = loadRegistry(manifest.registry, dir);
   const keys = resolvePieces(manifest, reg.presets, new Set(reg.index.keys()));
   const pieces = keys.map((k) => loadPiece(reg, k));
