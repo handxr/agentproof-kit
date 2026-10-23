@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
@@ -61,12 +61,15 @@ test("--global keeps the user's own entries in ~/.claude.json and ~/.claude/sett
   assert.deepEqual(json(join(HOME, ".claude/settings.json")), { model: "opus", permissions: { allow: ["Bash(ls)"] } });
 });
 
-test("--global marks pieces without a documented user location as unsupported", () => {
-  const { registry, place, env } = home();
+test("--global warns about pieces without a documented user location; claude commands go to ~/.claude/commands", () => {
+  const { registry, HOME, place, env } = home();
   init(place, manifest(registry, { add: { commands: ["ship"] } }));
-  const { ok, problems } = check(place, env);
-  assert.equal(ok, false);
-  for (const u of ["claude: commands/ship", "cursor: commands/ship", "cursor: rules/react"]) assert.ok(problems.some((p) => p.startsWith(`unsupported: ${u}`)), u);
+  assert.ok(existsSync(join(HOME, ".claude/commands/ship.md")));
+  const { ok, problems, warnings } = check(place, env);
+  assert.equal(ok, true);
+  assert.deepEqual(problems, []);
+  for (const u of ["cursor: commands/ship", "cursor: rules/react"]) assert.ok(warnings.some((w) => w.startsWith(`unsupported: ${u}`)), u);
+  assert.ok(!warnings.some((w) => w.startsWith("unsupported: claude:")));
 });
 
 test("check passes on a clean global install and catches drift there", () => {

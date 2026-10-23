@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { appendFileSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
@@ -80,13 +80,18 @@ test("check fails on a missing env var", () => {
   assert.deepEqual(problems, ["env: GITHUB_PERSONAL_ACCESS_TOKEN not set (needed by mcp/github)"]);
 });
 
-test("check fails on an outdated lock and on unsupported pieces", () => {
+test("check fails on an outdated lock; unsupported pieces are warnings with exit 0", () => {
   const { project } = fixture();
   update(project);
   writeJson(join(project, "agents.json"), { ...JSON.parse(readFileSync(join(project, "agents.json"), "utf8")), add: { commands: ["ship"] } });
   assert.match(check(project, ENV).problems.join("\n"), /pieces out of date/);
   update(project);
-  assert.deepEqual(check(project, ENV).problems, ["unsupported: codex: commands/ship (commands not supported)"]);
+  const r = check(project, ENV);
+  assert.deepEqual(r.problems, []);
+  assert.ok(r.warnings.includes("unsupported: codex: commands/ship (commands not supported)"));
+  const cli = spawnSync(process.execPath, [join(import.meta.dirname, "../src/cli.ts"), "check", "--dir", project], { env: { ...process.env, ...ENV } });
+  assert.equal(cli.status, 0, cli.stderr.toString());
+  assert.match(cli.stdout.toString(), /warning: unsupported: codex: commands\/ship/);
 });
 
 test("AGENTS.md keeps hand-written text outside the markers", () => {

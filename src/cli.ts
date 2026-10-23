@@ -13,7 +13,7 @@ const USAGE = `agent-kit <command> [options]
   add <type>/<id>...        add pieces to agents.json, then update
   update                    re-resolve from the registry, rewrite agents.lock and files
   sync                      make files match agents.lock (no new versions)
-  check                     fail on drift, outdated lock, missing env vars, unsupported pieces
+  check                     fail on drift, outdated lock, missing env vars (warns on unsupported pieces)
   list                      list registry pieces and presets (* = installed)
   show <type>/<id>          print a piece's metadata and files
 

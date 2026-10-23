@@ -1,11 +1,9 @@
 // Formats: docs/formats.md#claude-code
 import { renderFrontmatter } from "../parse.ts";
-import type { Adapter, GeneratedFile, JsonEntry, PieceType } from "../types.ts";
+import type { Adapter, GeneratedFile, JsonEntry } from "../types.ts";
 import { entries, file, item, key, ofType, plainMarkdown, rulesSection, unsupportedTypes } from "./shared.ts";
 
 const supports = new Set(["skills", "mcp", "rules", "commands", "agents", "hooks", "permissions"] as const);
-// No documented personal location for commands: they were merged into skills.
-const userSupports = new Set<PieceType>(["skills", "mcp", "rules", "agents", "hooks", "permissions"]);
 const EVENTS = { preShell: { event: "PreToolUse", matcher: "Bash" }, postEdit: { event: "PostToolUse", matcher: "Edit|Write" } } as const;
 const bash = (cmd: string) => [`Bash(${cmd})`, `Bash(${cmd} *)`];
 
@@ -14,7 +12,7 @@ export const claude: Adapter = {
   supports,
   render(pieces, scope = "project") {
     const user = scope === "user";
-    const files: Array<[string, GeneratedFile]> = user ? [] : [...plainMarkdown(pieces, "commands", ".claude/commands")];
+    const files: Array<[string, GeneratedFile]> = [...plainMarkdown(pieces, "commands", ".claude/commands")];
 
     // Claude reads only .claude/skills. Link each skill to the one copy in .agents/skills, so hand-written skills stay beside them.
     for (const { id } of ofType(pieces, "skills")) files.push([`.claude/skills/${id}`, { kind: "link", target: `../../.agents/skills/${id}` }]);
@@ -50,6 +48,6 @@ export const claude: Adapter = {
       for (const rule of new Set(perms.flatMap((p) => p.body[list].flatMap(bash)))) settings.push(item(["permissions", list], rule));
     }
     if (settings.length) files.push([".claude/settings.json", entries(settings)]);
-    return { files: new Map(files), agentsMd: rulesSection(pieces), unsupported: unsupportedTypes(pieces, user ? userSupports : supports, "claude"), warnings: [] };
+    return { files: new Map(files), agentsMd: rulesSection(pieces), unsupported: unsupportedTypes(pieces, supports, "claude"), warnings: [] };
   },
 };

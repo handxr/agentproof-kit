@@ -288,9 +288,8 @@ export function check(where: Where, env: NodeJS.ProcessEnv = process.env): Check
       if (!env[name]) problems.push(`env: ${name} not set (needed by ${p.key})`);
     }
   }
-  problems.push(...r.unsupported.map((u) => `unsupported: ${u}`));
   // A piece installed both globally and here loads twice in most agents.
-  const warnings = [...r.warnings];
+  const warnings = [...r.warnings, ...r.unsupported.map((u) => `unsupported: ${u}`)];
   const global = scope === "project" ? readLock(userPlace(env).config) : null;
   for (const k of Object.keys(lock.pieces)) if (global && k in global.pieces) warnings.push(`${k} is installed both globally and in this project`);
   return { ok: problems.length === 0, problems, warnings };
