@@ -80,3 +80,12 @@ Cursor reads `.agents/skills/` and `.claude/skills/` (https://cursor.com/docs/sk
 
 With all three targets no single directory works, because Claude Code does not read `.agents/skills` and Codex does not read `.claude/skills`. The Cursor docs do not say whether it merges two skills with the same name.
 
+
+## Checked against the real CLIs
+
+`npm run smoke` (scripts/smoke-agents.sh) generates the example project in a temp dir and asks each installed CLI what it parsed, with a throwaway home per CLI and dummy env values. Last run 2026-10-23 with Claude Code 2.1.309, codex-cli 0.164.0 and cursor-agent 2026.10.22-27dcf5f: no format bugs found.
+
+- Claude Code: `claude mcp list` lists both servers from `.mcp.json` as "Pending approval" (project servers need approval in an interactive session; `enableAllProjectMcpServers` in `.claude/settings.local.json` did not change that for `mcp list`). `claude doctor` reads project settings without a trust prompt and reports no invalid entries in `.claude/settings.json` (hooks, permissions); it does flag a malformed hook or permission list, so the check has teeth.
+- Codex: project `.codex/` is ignored until the project is trusted (docs: "Codex loads project `.codex/` layers only when you trust the project"). The script trusts the temp dir with the documented `[projects."<path>"] trust_level = "trusted"` in a temp `CODEX_HOME`; then `codex mcp list` shows both servers, `env_vars` and `bearer_token_env_var`.
+- Cursor CLI: `cursor-agent mcp list` lists both servers from `.cursor/mcp.json` as "needs approval".
+- Not checked without a login: skills, rules, subagents, commands, hooks firing, and Cursor/Codex permissions. Each needs a model call.

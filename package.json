@@ -10,7 +10,8 @@
   "scripts": {
     "agent-kit": "node src/cli.ts",
     "test": "node --test test/*.test.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "smoke": "bash scripts/smoke-agents.sh"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
