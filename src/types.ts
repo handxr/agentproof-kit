@@ -98,5 +98,7 @@ export type RenderResult = {
 export type Adapter = {
   readonly target: Target;
   readonly supports: ReadonlySet<PieceType>;
+  /** Project skill directories this target reads, preferred first. Skills are written by `render` in project.ts, once per directory. */
+  readonly skillDirs: readonly string[];
   readonly render: (pieces: readonly Piece[]) => RenderResult;
 };

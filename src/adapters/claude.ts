@@ -1,7 +1,7 @@
 // Formats: docs/formats.md#claude-code
 import { renderFrontmatter } from "../parse.ts";
 import type { Adapter, GeneratedFile, JsonEntry } from "../types.ts";
-import { entries, file, item, key, ofType, plainMarkdown, skillFiles, unsupportedTypes } from "./shared.ts";
+import { entries, file, item, key, ofType, plainMarkdown, unsupportedTypes } from "./shared.ts";
 
 const supports = new Set(["skills", "mcp", "rules", "commands", "agents", "hooks", "permissions"] as const);
 const EVENTS = { preShell: { event: "PreToolUse", matcher: "Bash" }, postEdit: { event: "PostToolUse", matcher: "Edit|Write" } } as const;
@@ -10,8 +10,9 @@ const bash = (cmd: string) => [`Bash(${cmd})`, `Bash(${cmd} *)`];
 export const claude: Adapter = {
   target: "claude",
   supports,
+  skillDirs: [".claude/skills"],
   render(pieces) {
-    const files: Array<[string, GeneratedFile]> = [...skillFiles(pieces, ".claude/skills"), ...plainMarkdown(pieces, "commands", ".claude/commands")];
+    const files: Array<[string, GeneratedFile]> = [...plainMarkdown(pieces, "commands", ".claude/commands")];
 
     const mcp = ofType(pieces, "mcp");
     if (mcp.length) {

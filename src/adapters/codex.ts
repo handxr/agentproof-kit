@@ -1,6 +1,6 @@
 // Formats: docs/formats.md#codex
 import type { Adapter, GeneratedFile } from "../types.ts";
-import { entries, file, item, ofType, rulesSection, skillFiles, unsupportedTypes } from "./shared.ts";
+import { entries, file, item, ofType, rulesSection, unsupportedTypes } from "./shared.ts";
 
 // Custom prompts (commands) are deprecated in Codex in favour of skills, so commands stay unsupported.
 const supports = new Set(["skills", "mcp", "rules", "agents", "hooks", "permissions"] as const);
@@ -10,8 +10,9 @@ const DECISION = { allow: "allow", ask: "prompt", deny: "forbidden" } as const;
 export const codex: Adapter = {
   target: "codex",
   supports,
+  skillDirs: [".agents/skills"],
   render(pieces) {
-    const files: Array<[string, GeneratedFile]> = skillFiles(pieces, ".agents/skills");
+    const files: Array<[string, GeneratedFile]> = [];
     const unsupported = unsupportedTypes(pieces, supports, "codex");
     const warnings: string[] = [];
 

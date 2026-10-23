@@ -8,7 +8,7 @@ Adapter: `src/adapters/cursor.ts`.
 
 | Piece | File | Source |
 | --- | --- | --- |
-| skills | `.agents/skills/<id>/SKILL.md` | https://cursor.com/docs/skills (Cursor also reads `.agents/skills`, `.claude/skills`, and `.codex/skills`) |
+| skills | `.agents/skills/<id>/SKILL.md`, or no copy of its own when Claude Code is also a target (see below) | https://cursor.com/docs/skills lists `.agents/skills/` and `.cursor/skills/` as project skill directories, and says Cursor also loads `.claude/skills/` and `.codex/skills/` for compatibility. |
 | mcp | `.cursor/mcp.json`, `{"mcpServers": {...}}`, env as `${env:NAME}` | https://cursor.com/docs/mcp |
 | rules | `.cursor/rules/<id>.mdc` with `description`, `globs`, `alwaysApply` | https://cursor.com/docs/rules |
 | commands | `.cursor/commands/<id>.md`. Cursor now treats commands as legacy and recommends skills. | https://cursor.com/help/customization/skills, and the `commands/` folder in https://cursor.com/docs/reference/plugins |
@@ -66,3 +66,17 @@ Custom agents inherit the parent session's sandbox. A `readonly` agent gets a wa
 | hook `postEdit` | `afterFileEdit` | `PostToolUse`, matcher `Edit\|Write` | unsupported |
 | permission `ask` | warning, dropped | `ask` | `decision = "prompt"` |
 | MCP env var | `${env:NAME}` | `${NAME}` | `env_vars = ["NAME"]` |
+
+## One copy of each skill
+
+Cursor reads `.agents/skills/` and `.claude/skills/` (https://cursor.com/docs/skills). Claude Code reads `.claude/skills/` and lists no `.agents/skills/` location (https://code.claude.com/docs/en/skills). Codex scans `.agents/skills` from the working directory up to the repo root (https://learn.chatgpt.com/codex/build-skills). `skillDirs` in `src/project.ts` picks the fewest directories that cover every target:
+
+| Targets | Skill directories written |
+| --- | --- |
+| cursor | `.agents/skills` |
+| cursor, claude | `.claude/skills` |
+| cursor, codex | `.agents/skills` |
+| cursor, claude, codex | `.agents/skills` and `.claude/skills`. Cursor sees both copies. |
+
+With all three targets no single directory works, because Claude Code does not read `.agents/skills` and Codex does not read `.claude/skills`. The Cursor docs do not say whether it merges two skills with the same name.
+

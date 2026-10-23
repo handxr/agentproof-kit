@@ -1,7 +1,7 @@
 // Formats: docs/formats.md#cursor
 import { renderFrontmatter } from "../parse.ts";
 import type { Adapter, GeneratedFile } from "../types.ts";
-import { entries, file, item, key, ofType, plainMarkdown, skillFiles, unsupportedTypes } from "./shared.ts";
+import { entries, file, item, key, ofType, plainMarkdown, unsupportedTypes } from "./shared.ts";
 
 const supports = new Set(["skills", "mcp", "rules", "commands", "agents", "hooks", "permissions"] as const);
 const EVENTS = { preShell: "beforeShellExecution", postEdit: "afterFileEdit" } as const;
@@ -9,8 +9,9 @@ const EVENTS = { preShell: "beforeShellExecution", postEdit: "afterFileEdit" } a
 export const cursor: Adapter = {
   target: "cursor",
   supports,
+  skillDirs: [".agents/skills", ".claude/skills"],
   render(pieces) {
-    const files: Array<[string, GeneratedFile]> = [...skillFiles(pieces, ".agents/skills"), ...plainMarkdown(pieces, "commands", ".cursor/commands")];
+    const files: Array<[string, GeneratedFile]> = [...plainMarkdown(pieces, "commands", ".cursor/commands")];
     const unsupported = unsupportedTypes(pieces, supports, "cursor");
     const warnings: string[] = [];
 

@@ -4,6 +4,7 @@ import { chmodSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, sta
 import { dirname, join } from "node:path";
 import { ADAPTERS } from "./adapters/index.ts";
 import { emptyLike, merge, ownedIds } from "./merge.ts";
+import { skillFiles } from "./adapters/shared.ts";
 import { ParseError, parseLock, parseManifest, parsePieceKey } from "./parse.ts";
 import { loadPiece, loadRegistry } from "./registry.ts";
 import { resolvePieces } from "./resolve.ts";
@@ -23,8 +24,18 @@ export const readLock = (dir: string): Lock | null => (existsSync(join(dir, LOCK
 export type Rendered = { files: Map<string, GeneratedFile>; agentsMd: string; unsupported: string[]; warnings: string[] };
 
 /** Pure. Two targets may emit the same path only with identical content (for example .agents/skills). */
+/** The fewest skill directories that every target reads. Targets with the fewest choices pick first. */
+export function skillDirs(targets: readonly Target[]): string[] {
+  const chosen: string[] = [];
+  for (const t of [...targets].sort((a, b) => ADAPTERS[a].skillDirs.length - ADAPTERS[b].skillDirs.length)) {
+    const dirs = ADAPTERS[t].skillDirs;
+    if (!dirs.some((d) => chosen.includes(d))) chosen.push(dirs[0]!);
+  }
+  return chosen;
+}
+
 export function render(pieces: readonly Piece[], targets: readonly Target[]): Rendered {
-  const files = new Map<string, GeneratedFile>();
+  const files = new Map<string, GeneratedFile>(skillDirs(targets).flatMap((d) => skillFiles(pieces, d)));
   const sections = new Set<string>();
   const unsupported: string[] = [];
   const warnings: string[] = [];
